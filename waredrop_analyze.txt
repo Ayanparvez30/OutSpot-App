@@ -1,0 +1,7 @@
+[WARN] Found fvm_config.json with SDK version different than .fvmrc
+fvm_config.json is deprecated and will be removed in future versions.
+Please do not modify this file manually.
+
+[WARN] Ignoring fvm_config.json
+Flutter SDK: SDK Version : 3.35.6 is not installed.
+[?25l? Would you like to install it now? (y/n) › yes                                 

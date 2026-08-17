@@ -1,0 +1,7 @@
+package com.outspot.app
+
+// FlutterFragmentActivity (not FlutterActivity) is required by local_auth for
+// the biometric prompt on Android.
+import io.flutter.embedding.android.FlutterFragmentActivity
+
+class MainActivity : FlutterFragmentActivity()

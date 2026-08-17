@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>CFBundleDevelopmentRegion</key>
+		<string>$(DEVELOPMENT_LANGUAGE)</string>
+		<key>CFBundleDisplayName</key>
+		<string>OutSpot</string>
+		<key>NSFaceIDUsageDescription</key>
+		<string>OutSpot uses Face ID to unlock your locked chats.</string>
+		<key>CFBundleExecutable</key>
+		<string>$(EXECUTABLE_NAME)</string>
+		<key>CFBundleIdentifier</key>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>OutSpot</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleShortVersionString</key>
+		<string>$(FLUTTER_BUILD_NAME)</string>
+		<key>CFBundleSignature</key>
+		<string>????</string>
+		<key>CFBundleVersion</key>
+		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<key>LSRequiresIPhoneOS</key>
+		<true/>
+		<key>UILaunchStoryboardName</key>
+		<string>LaunchScreen</string>
+		<key>UIMainStoryboardFile</key>
+		<string>Main</string>
+		<key>UISupportedInterfaceOrientations</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+		</array>
+		<key>CADisableMinimumFrameDurationOnPhone</key>
+		<true/>
+		<key>UIApplicationSupportsIndirectInputEvents</key>
+		<true/>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>OutSpot needs access to your photo library to let you share photos and set your profile picture.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>OutSpot needs permission to save photos and videos to your gallery.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>OutSpot needs access to your camera to take photos and record videos for sharing.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>OutSpot needs access to your microphone to record audio with videos.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>OutSpot needs your location to show nearby places and help you discover local spots.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>OutSpot needs your location to show nearby places and help you discover local spots.</string>
+		<key>NSLocationAlwaysUsageDescription</key>
+		<string>OutSpot needs your location to show nearby places and help you discover local spots.</string>
+		<key>NSAppleMusicUsageDescription</key>
+		<string>OutSpot needs access to your Apple Music library to play music and enhance your experience.</string>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>sms</string>
+			<string>tel</string>
+			<string>http</string>
+			<string>https</string>
+			<string>mailto</string>
+			<string>googlechromes</string>
+			<string>comgooglemaps</string>
+		</array>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.outspot.app.ios</string>
+				</array>
+			</dict>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.944035348932-dl3o1o7rqoq3338rluibm0d8lq588bdh</string>
+				</array>
+			</dict>
+		</array>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>fetch</string>
+			<string>remote-notification</string>
+		</array>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsArbitraryLoads</key>
+			<true/>
+			<key>NSExceptionDomains</key>
+			<dict>
+				<key>api-app.outspot.app</key>
+				<dict>
+					<key>NSExceptionAllowsInsecureHTTPLoads</key>
+					<true/>
+					<key>NSIncludesSubdomains</key>
+					<true/>
+				</dict>
+			</dict>
+		</dict>
+		<key>UIStatusBarHidden</key>
+		<false/>
+	</dict>
+</plist>
