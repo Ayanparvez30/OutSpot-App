@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:outspot/CommonWidgets/CustomWidgets/customWidget.dart';
 import 'package:outspot/Network_Manager/api_service.dart';
+import 'package:outspot/Network_Manager/app_version_service.dart';
+import 'package:outspot/Views/SplashScreen/force_update_screen.dart';
 import 'package:outspot/Network_Manager/user_preference.dart';
 import 'package:outspot/Utils/routes.dart';
 import 'package:outspot/main.dart' show initNotification, getFcmToken;
@@ -24,6 +26,16 @@ class SplashController extends GetxController {
   }
 
   Future<void> _startSplash() async {
+    // Runs before anything else, including the login check: a blocked build
+    // must not reach the main screen by any route. The check fails open, so
+    // an unreachable server just falls through to the normal flow.
+    final version = await AppVersionService.check();
+    if (version.updateRequired) {
+      log("🚫 Build is below the minimum — blocking on the update screen");
+      Get.offAll(() => ForceUpdateScreen(status: version));
+      return;
+    }
+
     final destination = await _resolveDestination();
     Get.offAllNamed(destination.route, arguments: destination.arguments);
     _initializeNotifications();

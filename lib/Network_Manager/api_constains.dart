@@ -60,6 +60,9 @@ class ApiConstants {
   static const String myCommunity = '/communities/mine';
   static const String reportFriend = '/report';
   static const String notification = '/notifications';
+  // Force-update policy. Public — answered before login.
+  static const String appVersion = '/app/version';
+
   static const String exploreHome = '/explore/home';
 
   static const String updateFcmToken = '/me/fcm-token';

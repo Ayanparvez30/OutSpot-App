@@ -38,6 +38,9 @@ dependencies:
   get: ^4.7.2
   flutter_screenutil: ^5.9.3
   google_fonts: ^6.2.1
+  # Reads the running build number (the +16 in version: 1.0.0+16) so the app
+  # can compare itself against the force-update policy from the server.
+  package_info_plus: ^8.0.2
   country_picker: ^2.0.27
   form_validation: ^3.2.0
   permission_handler: ^11.3.0
