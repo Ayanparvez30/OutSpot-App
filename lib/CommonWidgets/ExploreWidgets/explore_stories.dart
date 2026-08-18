@@ -42,9 +42,18 @@ class _StoryDim {
   static final double ring = _s(74); // outer ring diameter
   static final double ringStroke = _s(2.5);
   static final double cover = _s(64); // photo inside the ring
-  static final double miniMe = _s(41); // 3D character above the ring
-  static final double miniMeVisible = _s(36); // how much of it shows
-  static final double miniMeLeft = _s(17);
+  /// The character reads small against the 74px ring, so it's drawn a little
+  /// larger than the redesign's 41px. Only the frame grows — [miniMeZoom]
+  /// still crops to head-and-shoulders, so the face gets bigger rather than
+  /// more of the body creeping in. One number tunes it.
+  static const double avatarScale = 1.18;
+
+  static final double miniMe = _s(41 * avatarScale); // 3D character above ring
+  static final double miniMeVisible = _s(36 * avatarScale); // how much shows
+
+  /// Derived, not fixed: a wider character has to re-centre over the ring or
+  /// it drifts left as [avatarScale] changes.
+  static final double miniMeLeft = (item - miniMe) / 2;
 
   /// Minime avatars are full-body 768×1152 renders, but the redesign shows a
   /// head-and-shoulders close-up. Head plus a little breathing room lands in
