@@ -16,6 +16,13 @@ import 'package:outspot/CommonWidgets/send_to_sheet.dart';
 import 'package:outspot/Utils/shared_location.dart';
 import 'package:outspot/CommonWidgets/MapWidgets/image_viewer_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:outspot/Model/explore_place_model.dart';
+import 'package:outspot/Model/redesign/spot_card_model.dart';
+import 'package:outspot/Views/Message/camera_screen.dart';
+import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_redesign_icons.dart';
+import 'package:outspot/Views/Explorescreen/redesign/explore_feed_controller.dart';
+
+import '../../Utils/colors.dart';
 
 class RestaurantBottomSheet extends StatefulWidget {
   final RestaurantModel restaurant;
@@ -29,6 +36,13 @@ class RestaurantBottomSheet extends StatefulWidget {
 class _RestaurantBottomSheetState extends State<RestaurantBottomSheet>
     with SingleTickerProviderStateMixin {
   final MapController mapController = Get.find();
+
+  /// Shared with Explore so a bookmark made here shows up on the Saved screen
+  /// and on the feed's cards.
+  late final ExploreFeedController _feed =
+      Get.isRegistered<ExploreFeedController>()
+          ? Get.find<ExploreFeedController>()
+          : Get.put(ExploreFeedController());
   final BottomSheetController sheetController = Get.put(
     BottomSheetController(),
   );
@@ -265,7 +279,15 @@ class _RestaurantBottomSheetState extends State<RestaurantBottomSheet>
           height: 500.h,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: const Color(0xff2C003E),
+            // Figma paints the sheet's top with a #63149F → #16001C gradient
+            // rather than a flat purple; the header sits on the bright end and
+            // the body fades into the dark.
+          gradient: RadialGradient(
+          center: Alignment.topRight,
+          radius: 1.5,
+          colors: [AppColors.bgGradientTop, AppColors.bgGradientBottom],
+          stops: const [0.0, 0.6],
+        ),
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(30.r),
               topRight: Radius.circular(30.r),
@@ -286,7 +308,7 @@ class _RestaurantBottomSheetState extends State<RestaurantBottomSheet>
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: Colors.white.withValues(alpha: 0.30),
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
@@ -303,7 +325,12 @@ class _RestaurantBottomSheetState extends State<RestaurantBottomSheet>
                       // --- Header ---
                       _buildHeader(),
 
-                      SizedBox(height: 20.h),
+                      SizedBox(height: 12.h),
+
+                      // --- Spot Actions (Figma "Spot Actions", 361x36) ---
+                      _buildSpotActions(),
+
+                      SizedBox(height: 16.h),
 
                       // --- Top 3 Photos Preview (Always visible) ---
                       if (restaurant.photos.isNotEmpty) _buildTopPhotos(),
@@ -336,211 +363,496 @@ class _RestaurantBottomSheetState extends State<RestaurantBottomSheet>
   }
 
   // হেডার অংশ (নাম, রেটিং, স্ট্যাটাস)
+  /// Figma "Bottom Sheet Top Nav" (393×153): grabber, name, two metadata
+  /// lines with the points badge, and the close button — in that order.
+  ///
+  /// The old header carried its own directions/send buttons; those now live in
+  /// the actions row below, so keeping them here showed the same icon twice
+  /// doing the same thing. Only the close button stays.
   Widget _buildHeader() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Recommended",
-              style: GoogleFonts.notoSans(
-                color: Colors.white,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                restaurant.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.notoSans(
+                  color: Colors.white,
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
               ),
             ),
-            Spacer(),
-            GestureDetector(
-              onTap: () async {
-                await mapController.drawRouteToDestination(
-                  LatLng(restaurant.lat, restaurant.lng),
-                );
-                mapController.selectedRestaurant.value = null;
-                mapController.listOpenedFromBottomSheet.value = false;
-              },
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: Color(0xff703A8B),
-                child: Icon(Icons.directions, color: Colors.white, size: 22),
-              ),
-            ),
-            SizedBox(width: 10.w),
+            SizedBox(width: 8.w),
             GestureDetector(
               onTap: () {
-                final display =
-                    '${restaurant.name}\n${restaurant.address}\n${restaurant.rating} stars - ${restaurant.category}';
-                // Embed the place so the recipient can tap the message to
-                // reopen it on the map.
-                final msg = SharedLocation.encode(
-                  displayText: display,
-                  placeId: restaurant.id,
-                  lat: restaurant.lat,
-                  lng: restaurant.lng,
-                  name: restaurant.name,
-                );
-                showSendToSheet(msg);
-              },
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: Color(0xff703A8B),
-                child: Icon(Icons.send, color: Colors.white, size: 20),
-              ),
-            ),
-            SizedBox(width: 10.w),
-            GestureDetector(
-              onTap: () {
-                // If list was opened from this bottom sheet, restore it with search state
+                // Unchanged: restore the category list if the sheet was opened
+                // from it, then clear the selection.
                 if (mapController.listOpenedFromBottomSheet.value) {
                   mapController.showCategoryList.value = true;
-                  mapController.isSearching.value =
-                      true; // Keep search bar visible
+                  mapController.isSearching.value = true;
                 }
                 mapController.selectedRestaurant.value = null;
                 mapController.listOpenedFromBottomSheet.value = false;
                 mapController.isSearching.value = false;
-                // mapController.searchMarker.clear();
               },
-              child: SvgPicture.asset(
-                "assets/svg/icons/cross_withOverlay.svg",
-                height: 36,
-                width: 36,
+              child: Container(
+                width: 32.w,
+                height: 32.w,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.close, color: Colors.white, size: 18.sp),
               ),
             ),
           ],
         ),
-        SizedBox(height: 5.h),
-
+        SizedBox(height: 6.h),
+        // Line 1: category · distance
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GestureDetector(
-              onTap: () {
-                List<String> allImages = [
-                  restaurant.image,
-                  ...restaurant.photos,
-                ];
-                _openImageViewer(allImages, 0);
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.red, width: 3),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(50.r),
-                  child: CachedNetworkImage(
-                    imageUrl: restaurant.image,
-                    height: 60.h,
-                    width: 60.h,
-                    fit: BoxFit.cover,
-                    placeholder: (c, u) => Container(color: Colors.grey),
-                    errorWidget:
-                        (c, u, e) =>
-                            Icon(Icons.restaurant, color: Colors.white),
-                  ),
+            ExploreIcons.svg(ExploreIcons.pillTrending, size: 12.sp),
+            SizedBox(width: 4.w),
+            Flexible(
+              child: Text(
+                restaurant.category,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.notoSans(
+                  color: const Color(0xffBABABA),
+                  fontSize: 12.sp,
                 ),
               ),
             ),
-            SizedBox(width: 15.w),
+          ],
+        ),
+        SizedBox(height: 4.h),
+        // Line 2: price · open/closed · rating (reviews) · points badge
+        Row(
+          children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Wrap(
+                spacing: 6.w,
+                runSpacing: 2.h,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text(
-                    restaurant.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.notoSans(
-                      color: Colors.red,
-                      fontSize: 17.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    "${restaurant.priceRange.isEmpty ? '\$10-30' : restaurant.priceRange} | ${restaurant.category.capitalizeFirst}",
-                    style: GoogleFonts.notoSans(
-                      color: Colors.white,
-                      fontSize: 13.sp,
-                    ),
-                  ),
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      if (!restaurant.status.toLowerCase().contains("unknown"))
-                        Text(
-                          restaurant.status,
-                          style: GoogleFonts.notoSans(
-                            color:
-                                restaurant.status.toLowerCase().contains("open")
-                                    ? Colors.greenAccent
-                                    : Colors.redAccent,
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      if (!restaurant.status.toLowerCase().contains("unknown"))
-                        Text(
-                          " | ",
-                          style: GoogleFonts.notoSans(
-                            color: Colors.yellow,
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      Text(
-                        restaurant.rating.toString(),
-                        style: GoogleFonts.notoSans(
-                          color: Colors.yellow,
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
+                  if (restaurant.priceRange.trim().isNotEmpty)
+                    Text(
+                      restaurant.priceRange,
+                      style: GoogleFonts.notoSans(
+                        color: const Color(0xffBABABA),
+                        fontSize: 12.sp,
                       ),
-                      if (restaurant.totalReviews > 0)
+                    ),
+                  if (restaurant.status.trim().isNotEmpty)
+                    Text(
+                      restaurant.status,
+                      style: GoogleFonts.notoSans(
+                        color:
+                            restaurant.status.toLowerCase().contains('open')
+                                ? const Color(0xff42D880)
+                                : const Color(0xffFF7474),
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  if (restaurant.rating > 0)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ExploreIcons.svg(
+                          ExploreIcons.cardRatingStar,
+                          size: 12.sp,
+                        ),
+                        SizedBox(width: 2.w),
                         Text(
-                          " (${restaurant.totalReviews})",
+                          restaurant.rating.toStringAsFixed(1),
                           style: GoogleFonts.notoSans(
-                            color: Colors.white54,
+                            color: const Color(0xffF8AC00),
                             fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                    ],
-                  ),
+                        if (restaurant.totalReviews > 0) ...[
+                          SizedBox(width: 2.w),
+                          Text(
+                            '(${restaurant.totalReviews})',
+                            style: GoogleFonts.notoSans(
+                              color: const Color(0xffBABABA),
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                 ],
               ),
             ),
             SizedBox(width: 8.w),
-            Padding(
-              padding: EdgeInsets.only(top: 30),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 1.h),
-                decoration: BoxDecoration(
-                  border: Border.all(width: 1.5.w, color: Color(0xffFAC139)),
-                  borderRadius: BorderRadius.circular(15.sp),
-                ),
-                child: Row(
-                  children: [
-                    Image.asset("assets/Images/skcoin.png", scale: 3),
-                    SizedBox(width: 2),
-                    Text(
-                      "$_displayPoints",
-                      style: GoogleFonts.notoSans(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _pointsBadge(),
           ],
         ),
       ],
     );
   }
 
-  // উপরের ৩টি ছবি (ফিক্সড)
+  /// Figma "Points Badge Small" — 43×20, #3B2625 on a #9D8813 hairline.
+  Widget _pointsBadge() {
+    // _searchPoints is filled by _resolvePoints() when the search endpoint has
+    // a better figure than the marker payload carried; until then the
+    // restaurant's own value stands.
+    final pts = _searchPoints > 0 ? _searchPoints : restaurant.points;
+    return Container(
+        height: 20.h,
+        padding: EdgeInsets.symmetric(horizontal: 7.w),
+        decoration: BoxDecoration(
+          color: const Color(0xff3B2625),
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(color: const Color(0xff9D8813), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ExploreIcons.svg(ExploreIcons.cardPoints, size: 12.sp),
+            SizedBox(width: 3.w),
+            Text(
+              '$pts',
+              style: GoogleFonts.notoSans(
+                color: const Color(0xffFFEA00),
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+    );
+  }
+
+  /// Figma "Spot Actions" — Check In plus five round buttons, 36px, gap 8.
+  ///
+  /// Check In is deliberately a copy of the PlaceDetailsScreen behaviour, not a
+  /// new flow: same closed-place guard, same `CameraScreen` push, same
+  /// arguments. Anything else would award points down a different path.
+  Widget _buildSpotActions() {
+    // Same guard PlaceDetailsScreen applies: once status is known and the place
+    // isn't open, Check In is replaced by a disabled "Closed" chip. While status
+    // is unknown the button stays live, matching that screen.
+    final status = restaurant.status.trim();
+    final isClosed =
+        status.isNotEmpty && !status.toLowerCase().contains('open');
+
+    return SizedBox(
+      height: 36.h,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          isClosed ? _closedChip() : _checkInButton(),
+          SizedBox(width: 8.w),
+          _roundAction(
+            ExploreIcons.sheetDirections,
+            onTap: () async {
+              await mapController.drawRouteToDestination(
+                LatLng(restaurant.lat, restaurant.lng),
+              );
+              mapController.selectedRestaurant.value = null;
+              mapController.listOpenedFromBottomSheet.value = false;
+            },
+          ),
+          SizedBox(width: 8.w),
+          _saveAction(),
+          SizedBox(width: 8.w),
+          if (restaurant.phone.trim().isNotEmpty) ...[
+            _roundAction(
+              ExploreIcons.sheetCall,
+              onTap: () => _makePhoneCall(restaurant.phone.trim()),
+            ),
+            SizedBox(width: 8.w),
+          ],
+          if (restaurant.website.trim().isNotEmpty) ...[
+            _roundAction(
+              ExploreIcons.sheetWebsite,
+              onTap: () => _launchWebsite(restaurant.website.trim()),
+            ),
+            SizedBox(width: 8.w),
+          ],
+          _roundAction(
+            ExploreIcons.sheetSend,
+            onTap: () {
+              final display =
+                  '${restaurant.name}\n${restaurant.address}\n'
+                  '${restaurant.rating} stars - ${restaurant.category}';
+              showSendToSheet(
+                SharedLocation.encode(
+                  displayText: display,
+                  placeId: restaurant.id,
+                  lat: restaurant.lat,
+                  lng: restaurant.lng,
+                  name: restaurant.name,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _checkInButton() {
+    return GestureDetector(
+      onTap: () {
+        // Identical to PlaceDetailsScreen: push the camera in this flow with
+        // the place and category, so back returns here and the visit is
+        // recorded exactly the same way.
+        Get.to(
+          () => const CameraScreen(),
+          arguments: {
+            'place': _asExplorePlace(),
+            'categoryKey':
+                mapController.selectedCategory.value.isNotEmpty
+                    ? mapController.selectedCategory.value
+                    : restaurant.category,
+            'fromCheckIn': true,
+          },
+        );
+      },
+      child: Container(
+        height: 36.h,
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xffE2206D),
+          borderRadius: BorderRadius.circular(24.r),
+        ),
+        child: Text(
+          'Check In',
+          style: GoogleFonts.notoSans(
+            color: Colors.white,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _closedChip() => Container(
+    height: 36.h,
+    padding: EdgeInsets.symmetric(horizontal: 16.w),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: Colors.white12,
+      borderRadius: BorderRadius.circular(24.r),
+    ),
+    child: Text(
+      'Closed',
+      style: GoogleFonts.notoSans(
+        color: Colors.white54,
+        fontSize: 14.sp,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+
+  /// Round action button. [asset] is a Figma export, not a Material glyph —
+  /// the designed icons differ enough from Material's that mixing them showed.
+  Widget _roundAction(String asset, {required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36.h,
+        height: 36.h,
+        decoration: const BoxDecoration(
+          color: Color(0xff78368F),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: ExploreIcons.svg(asset, size: 20.sp, color: Colors.white),
+        ),
+      ),
+    );
+  }
+
+  /// Bookmark, backed by the same saved-places endpoints the Explore cards use,
+  /// so a spot saved from the map shows up on the Saved screen too.
+  Widget _saveAction() {
+    return Obx(() {
+      final saved = _feed.savedPlaceIds.contains(restaurant.id);
+      return GestureDetector(
+        onTap: () => _feed.toggleSaved(_asSpotCard()),
+        child: Container(
+          width: 36.h,
+          height: 36.h,
+          decoration: const BoxDecoration(
+            color: Color(0xff78368F),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: ExploreIcons.svg(
+              ExploreIcons.sheetSave,
+              size: 20.sp,
+              // Filled state is the same glyph tinted gold, as on the cards.
+              color: saved ? const Color(0xffF8AC00) : Colors.white,
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  /// The shape `CameraScreen` and `PlaceDetailsScreen` expect.
+  ExplorePlaceModel _asExplorePlace() => ExplorePlaceModel(
+    placeId: restaurant.id,
+    name: restaurant.name,
+    address: restaurant.address,
+    photoUrl: restaurant.image,
+    points: restaurant.points,
+    // The map sheet has no distance of its own; the check-in flow re-measures
+    // against live GPS anyway, so 0 here is not used for any decision.
+    distanceMiles: 0,
+    lat: restaurant.lat,
+    lng: restaurant.lng,
+    rating: restaurant.rating,
+    userRatingsTotal: restaurant.totalReviews,
+  );
+
+  /// The shape the saved-places controller expects.
+  SpotCardModel _asSpotCard() => SpotCardModel(
+    placeId: restaurant.id,
+    name: restaurant.name,
+    photoUrl: restaurant.image,
+    address: restaurant.address,
+    points: restaurant.points,
+    distanceMiles: 0,
+    lat: restaurant.lat,
+    lng: restaurant.lng,
+    rating: restaurant.rating,
+    reviewCount: restaurant.totalReviews,
+    openNow: restaurant.status.toLowerCase().contains('open'),
+    priceRange: restaurant.priceRange,
+    types: const [],
+    category: restaurant.category,
+    friendsCount: 0,
+    friends: const [],
+    accessible: false,
+  );
+
+  /// Figma "Friends Spotted Card": gold glyph, title, overlapping avatars and
+  /// the spotted-here line.
+  Widget _buildFriendsSpottedCard() {
+    final friends = _detail?.friends ?? const [];
+    final count = _detail?.friendsCount ?? 0;
+    final shown = friends.take(3).toList();
+    final avatar = 36.w;
+    final step = avatar - 6.w; // Figma overlaps the avatars by 6px
+
+    final first = shown.isNotEmpty ? shown.first.name : '';
+    final others = count - 1;
+    final line =
+        others <= 0
+            ? '$first was spotted here'
+            : others == 1
+            ? '$first and 1 other were spotted here'
+            : '$first and $others others were spotted here';
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: const Color(0xffC574F7).withValues(alpha: 0.20),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ExploreIcons.svg(ExploreIcons.friendsSpotted, size: 20.sp),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Friends Spotted',
+                  style: GoogleFonts.notoSans(
+                    color: Colors.white,
+                    fontSize: 14.sp,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                Row(
+                  children: [
+                    if (shown.isNotEmpty)
+                      SizedBox(
+                        width: step * (shown.length - 1) + avatar,
+                        height: avatar,
+                        child: Stack(
+                          children: [
+                            for (var i = 0; i < shown.length; i++)
+                              Positioned(
+                                left: step * i,
+                                child: Container(
+                                  width: avatar,
+                                  height: avatar,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: const Color(0xff2C003E),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child:
+                                      shown[i].avatar.isEmpty
+                                          ? Icon(
+                                            Icons.person,
+                                            size: 18.sp,
+                                            color: Colors.white54,
+                                          )
+                                          : CachedNetworkImage(
+                                            imageUrl: shown[i].avatar,
+                                            fit: BoxFit.cover,
+                                            // Minime renders are full-body.
+                                            alignment: Alignment.topCenter,
+                                            errorWidget:
+                                                (_, __, ___) => Icon(
+                                                  Icons.person,
+                                                  size: 18.sp,
+                                                  color: Colors.white54,
+                                                ),
+                                          ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        line,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.notoSans(
+                          color: const Color(0xffBABABA),
+                          fontSize: 10.sp,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTopPhotos() {
     if (restaurant.photos.isEmpty) {
       return SizedBox(
@@ -688,6 +1000,14 @@ class _RestaurantBottomSheetState extends State<RestaurantBottomSheet>
         ),
         SizedBox(height: 10.h),
 
+        // Figma "Friends Spotted Card" — 361×91, #C574F7 at 20%, r=12.
+        // Hidden entirely when nobody has been here: an empty card reads as a
+        // loading failure rather than as "no friends yet".
+        if ((_detail?.friendsCount ?? 0) > 0) ...[
+          _buildFriendsSpottedCard(),
+          SizedBox(height: 12.h),
+        ],
+
         // Distance (from API)
         if (_detail?.distanceMiles != null) ...[
           Align(
@@ -755,11 +1075,16 @@ class _RestaurantBottomSheetState extends State<RestaurantBottomSheet>
         ],
 
         // Opening Hours
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.black12,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
+        //
+        // The Material wrapper is required, not decorative: ExpansionTile paints
+        // its ink splash onto the nearest Material ancestor, and a plain
+        // Container with a background sits in between — which made Flutter throw
+        // "ListTile background color or ink splashes may be invisible" on every
+        // sheet open. `clipBehavior` keeps the splash inside the rounded corners.
+        Material(
+          color: Colors.black12,
+          borderRadius: BorderRadius.circular(12.r),
+          clipBehavior: Clip.antiAlias,
           child: Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(

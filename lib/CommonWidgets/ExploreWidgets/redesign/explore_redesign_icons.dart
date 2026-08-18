@@ -28,6 +28,20 @@ abstract final class ExploreIcons {
   static const String cardCafeTag = '$_dir/card_cafe_tag.svg';
   static const String cardAccessible = '$_dir/card_accessible.svg';
 
+  // Map bottom sheet — Figma's "Spot Actions" row (20px glyphs)
+  static const String sheetDirections = '$_dir/sheet_directions.svg';
+  static const String sheetSave = '$_dir/sheet_save.svg';
+  static const String sheetCall = '$_dir/sheet_call.svg';
+  static const String sheetWebsite = '$_dir/sheet_website.svg';
+  static const String sheetSend = '$_dir/sheet_send.svg';
+
+  // Map bottom sheet — travel options and the friends card
+  static const String travelCar = '$_dir/travel_car.svg';
+  static const String travelTrain = '$_dir/travel_train.svg';
+  static const String travelWalk = '$_dir/travel_walk.svg';
+  static const String travelBike = '$_dir/travel_bike.svg';
+  static const String friendsSpotted = '$_dir/friends_spotted.svg';
+
   // Search field
   static const String search = '$_dir/search.svg';
 

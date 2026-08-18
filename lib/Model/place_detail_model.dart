@@ -45,6 +45,12 @@ class PlaceDetailModel {
   final String? googleMapsUrl;
   final List<String> photos;
   final List<String> weekdayText;
+
+  /// Friends who have checked in here. Added for the map sheet's "Friends
+  /// Spotted" card; the endpoint returns 0/empty when the user has no friends,
+  /// so older callers that ignore these fields are unaffected.
+  final int friendsCount;
+  final List<PlaceFriend> friends;
   final String? priceRange;
   final String? status;
 
@@ -69,6 +75,8 @@ class PlaceDetailModel {
     this.googleMapsUrl,
     required this.photos,
     required this.weekdayText,
+    this.friendsCount = 0,
+    this.friends = const [],
     this.priceRange,
     this.status,
   });
@@ -100,8 +108,34 @@ class PlaceDetailModel {
       googleMapsUrl: json['googleMapsUrl'],
       photos: List<String>.from(json['photos'] ?? []),
       weekdayText: List<String>.from(json['weekdayText'] ?? []),
+      friendsCount: (json['friendsCount'] as num?)?.toInt() ?? 0,
+      friends:
+          (json['friendsPreview'] is List)
+              ? (json['friendsPreview'] as List)
+                  .whereType<Map>()
+                  .map((e) => PlaceFriend.fromJson(Map<String, dynamic>.from(e)))
+                  .toList()
+              : const [],
       priceRange: json['priceRange'],
       status: json['status'],
     );
   }
+}
+
+
+/// One friend on the map sheet's "Friends Spotted" card.
+class PlaceFriend {
+  final String name;
+  final String avatar;
+
+  const PlaceFriend({required this.name, required this.avatar});
+
+  factory PlaceFriend.fromJson(Map<String, dynamic> json) => PlaceFriend(
+    // The backend assembles first+last and falls back to the username.
+    name:
+        (json['name']?.toString().trim().isNotEmpty ?? false)
+            ? json['name'].toString().trim()
+            : (json['username']?.toString() ?? ''),
+    avatar: json['avatar']?.toString() ?? '',
+  );
 }

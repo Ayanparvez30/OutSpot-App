@@ -293,7 +293,12 @@ class _ExploreExpandedCategoryState extends State<ExploreExpandedCategory> {
     ];
 
     Get.bottomSheet(
-      Container(
+      // Material ancestor is required: the ListTiles below draw their ink
+      // splashes onto it, and without one Flutter logs "ListTile background
+      // color or ink splashes may be invisible" on every open.
+      Material(
+        type: MaterialType.transparency,
+        child: Container(
         padding: EdgeInsets.symmetric(vertical: 12.h),
         decoration: BoxDecoration(
           color: const Color(0xff1A0420),
@@ -357,6 +362,7 @@ class _ExploreExpandedCategoryState extends State<ExploreExpandedCategory> {
               SizedBox(height: 8.h),
             ],
           ),
+        ),
         ),
       ),
     );
