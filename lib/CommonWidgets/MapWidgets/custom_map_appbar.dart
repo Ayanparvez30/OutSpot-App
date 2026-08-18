@@ -9,7 +9,8 @@ import 'package:outspot/Views/AllStats/sportVisited.dart';
 import 'package:outspot/Views/Mainscreen/mainscreeen_controller.dart';
 import 'package:outspot/Views/Mapscreen/map_controller.dart';
 import 'package:outspot/CommonWidgets/CustomWidgets/shimmer_placeholder.dart';
-import 'package:outspot/CommonWidgets/MapWidgets/mapsearch.dart';
+import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_redesign_icons.dart';
+import 'package:outspot/Views/Explorescreen/redesign/explore_saved_screen.dart';
 
 class CustomMapAppBar extends StatelessWidget implements PreferredSizeWidget {
   final MapController controller;
@@ -79,20 +80,18 @@ class CustomMapAppBar extends StatelessWidget implements PreferredSizeWidget {
 
           // Display Container (Replaced TextField)
           Expanded(
-            child: GestureDetector(
-              onTap: () {
-                // কেউ যদি এই কন্টেইনারে ক্লিক করে, চাইলে তাকে আবার SearchScreen এ পাঠাতে পারেন
-                controller.clearRestaurantSearch();
-                controller.clearRoute();
-                Get.to(() => const SearchScreen());
-              },
-              child: Container(
-                height: 45.h,
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
+            // A label, not a button: it shows which category is active. Tapping
+            // it used to jump to the old SearchScreen, which threw away the
+            // filter the user had just applied. Search now lives on the map
+            // overlay, so the wrapper is gone — note it's dropped rather than
+            // wrapped in IgnorePointer, which would have killed the ✕ inside.
+            child: Container(
+                height: 36.h,
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
                 decoration: BoxDecoration(
-                  color: const Color(0xff2D0731),
-                  borderRadius: BorderRadius.circular(30.r),
-                  border: Border.all(color: const Color(0xff42D880), width: 1),
+                  color: const Color(0xff1E092A),
+                  borderRadius: BorderRadius.circular(24.r),
+                  border: Border.all(color: const Color(0xff703A8B), width: 1),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -107,7 +106,8 @@ class CustomMapAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 : "Search..."),
                         style: GoogleFonts.notoSans(
                           color: Colors.white,
-                          fontSize: 16.sp,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -154,9 +154,8 @@ class CustomMapAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
     );
   }
 
@@ -165,7 +164,13 @@ class CustomMapAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      leading: Padding(
+      // Profile + saved share the leading slot, as on Explore, so the two
+      // screens carry the same top bar.
+      leadingWidth: 104.w,
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+      Padding(
         padding: EdgeInsets.only(left: 18.w),
         child: GestureDetector(
           onTap: () {
@@ -174,12 +179,12 @@ class CustomMapAppBar extends StatelessWidget implements PreferredSizeWidget {
           child:
               controller.avatarurl.value.isEmpty
                   ? CircleAvatar(
-                    radius: 30,
+                    radius: 20,
                     backgroundColor: Colors.transparent,
                     child: const Icon(Icons.person, color: Colors.grey),
                   )
                   : CircleAvatar(
-                    radius: 30,
+                    radius: 20,
                     backgroundColor: Colors.transparent,
                     child: ClipOval(
                       child: CachedNetworkImage(
@@ -197,6 +202,26 @@ class CustomMapAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ),
         ),
+      ),
+          SizedBox(width: 10.w),
+          GestureDetector(
+            onTap: () => Get.to(() => const ExploreSavedScreen()),
+            child: Container(
+              width: 34.w,
+              height: 34.w,
+              padding: EdgeInsets.all(7.sp),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xff703A8B),
+              ),
+              child: ExploreIcons.svg(
+                ExploreIcons.cardSave,
+                size: 18.sp,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ),
       centerTitle: true,
       title: GestureDetector(
@@ -229,14 +254,14 @@ class CustomMapAppBar extends StatelessWidget implements PreferredSizeWidget {
         }),
       ),
       actions: [
+        // Search moved onto the map itself (see MapExploreOverlay), so this
+        // slot carries the leaderboard instead — same pair Explore shows.
         GestureDetector(
-          onTap: () {
-            Get.to(const SearchScreen());
-          },
+          onTap: () => Get.toNamed(Routes.leaderboardGlobal),
           child: Padding(
             padding: EdgeInsets.only(right: 10.w),
             child: SvgPicture.asset(
-              "assets/svg/icons/map_search.svg",
+              "assets/svg/icons/dashBoardIcon.svg",
               height: 34.w,
               width: 34.w,
             ),

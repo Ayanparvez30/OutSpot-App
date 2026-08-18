@@ -5,6 +5,7 @@ import 'package:outspot/CommonWidgets/MapWidgets/MapBottomSheetHandler.dart';
 import 'package:outspot/CommonWidgets/MapWidgets/MapFloatingButtons.dart';
 import 'package:outspot/CommonWidgets/MapWidgets/MapRouteInfoSheet.dart';
 import 'package:outspot/CommonWidgets/MapWidgets/MapUserInfoPill.dart';
+import 'package:outspot/CommonWidgets/MapWidgets/redesign/map_explore_overlay.dart';
 import 'package:outspot/CommonWidgets/MapWidgets/mapCenterLoader.dart';
 import 'package:outspot/Utils/colors.dart';
 import 'package:outspot/CommonWidgets/MapWidgets/custom_map_appbar.dart';
@@ -69,9 +70,11 @@ class MapScreen extends StatelessWidget {
                 ],
               ),
               // 2. Custom Overlays & Buttons
-              MapCategoryList(controller: controller),
-              MapUserInfoPill(controller: controller),
-              MapRefreshButton(controller: controller),
+              //
+              // Search field + category pills, built from the same widgets the
+              // Explore feed uses. Replaces the old text-only pill row and the
+              // location/weather chip, which the redesign drops.
+              MapExploreOverlay(controller: controller),
 
               // 🔥 নতুন যোগ করা লোডার (মাঝখানে দেখানোর জন্য)
               MapCenterLoader(controller: controller),

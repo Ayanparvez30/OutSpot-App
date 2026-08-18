@@ -69,12 +69,16 @@ class MapController extends GetxController with WidgetsBindingObserver {
   RxList<RestaurantModel> allRestaurants = <RestaurantModel>[].obs;
   RxList<RestaurantModel> filteredRestaurants = <RestaurantModel>[].obs;
   final RxSet<Marker> restaurantMarkers = <Marker>{}.obs;
+  /// Category keys the map can filter by. Order and wording match the Explore
+  /// pills; `dessert` is the one the redesign adds, and the backend now has a
+  /// matching bucket for it.
   final List<String> categories = [
     "trending",
-    "bars",
-    "outdoors",
-    "cafes",
     "restaurants",
+    "cafes",
+    "bars",
+    "dessert",
+    "outdoors",
     "venue events",
   ];
   RxString selectedCategory = "".obs;
