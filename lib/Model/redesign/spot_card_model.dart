@@ -31,6 +31,16 @@ class SpotFriend {
     required this.avatar,
   });
 
+  /// Round-trips through the feed cache. Deliberately writes the same keys
+  /// [SpotFriend.fromJson] reads, so a cached entry parses exactly like a
+  /// fresh server response.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'username': username,
+    'name': name,
+    'avatar': avatar,
+  };
+
   /// Preferred label — the real name when set, else the username.
   String get displayName => name.trim().isNotEmpty ? name.trim() : username;
 
@@ -175,6 +185,27 @@ class SpotCardModel {
     }
     return '';
   }
+
+  /// Round-trips through the feed cache — see [SpotFriend.toJson].
+  Map<String, dynamic> toJson() => {
+    'placeId': placeId,
+    'name': name,
+    'photoUrl': photoUrl,
+    'address': address,
+    'points': points,
+    'distanceMiles': distanceMiles,
+    'lat': lat,
+    'lng': lng,
+    'rating': rating,
+    'userRatingsTotal': reviewCount,
+    'openNow': openNow,
+    'priceRange': priceRange,
+    'types': types,
+    'category': category,
+    'friendsCount': friendsCount,
+    'friendsPreview': friends.map((f) => f.toJson()).toList(),
+    'accessible': accessible,
+  };
 
   /// The shape `PlaceDetailsScreen` expects.
   ///

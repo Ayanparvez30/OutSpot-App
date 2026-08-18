@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:outspot/CommonWidgets/CustomWidgets/location_helper.dart';
 import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_search_and_filters.dart';
 import 'package:outspot/Model/redesign/spot_card_model.dart';
+import 'package:outspot/Network_Manager/redesign/explore_feed_cache.dart';
 import 'package:outspot/Network_Manager/redesign/explore_feed_service.dart';
 
 /// One carousel's worth of state.
@@ -96,6 +97,11 @@ class ExploreFeedController extends GetxController {
   final RxBool locating = true.obs;
   final RxString locationError = ''.obs;
 
+  /// True while fresh data is being fetched behind cards that are already on
+  /// screen. The feed uses it for a quiet indicator instead of a spinner that
+  /// would hide content the user can already read.
+  final RxBool refreshingInBackground = false.obs;
+
   /// Saved place ids. Local-only until a SavedPlace table exists — tapping the
   /// bookmark updates the icon and nothing else, by design.
   final RxSet<String> savedPlaceIds = <String>{}.obs;
@@ -121,13 +127,28 @@ class ExploreFeedController extends GetxController {
     super.onClose();
   }
 
+  /// Cold start: paint the previous run's feed first, then bring it up to date.
+  ///
+  /// The old behaviour — wait for GPS, then wait for nine network calls, then
+  /// render — left the screen empty for several seconds every single launch.
   Future<void> _bootstrap() async {
-    locating.value = true;
+    // 1. Whatever we had last time goes up immediately, before GPS is even
+    //    asked for. If it turns out to be from another city step 3 replaces it.
+    final cached = await ExploreFeedCache.load();
+    if (cached != null) {
+      _applyCache(cached);
+      locating.value = false; // something is on screen; no full-screen spinner
+    } else {
+      locating.value = true;
+    }
+
     locationError.value = '';
     try {
       final Position? pos = await LocationHelper.getCurrentPosition();
       if (pos == null) {
-        locationError.value = 'Location unavailable';
+        // Cached cards are better than an error screen; only complain when
+        // there was nothing to fall back on.
+        if (cached == null) locationError.value = 'Location unavailable';
         locating.value = false;
         return;
       }
@@ -136,27 +157,93 @@ class ExploreFeedController extends GetxController {
       log('📍 Explore feed location: $_lat, $_lng');
     } catch (e) {
       log('❌ Explore feed location failed: $e');
-      locationError.value = 'Location unavailable';
+      if (cached == null) locationError.value = 'Location unavailable';
       locating.value = false;
       return;
     }
+
+    // 2. Moved far enough that the cached cards describe somewhere else? They
+    //    stay on screen anyway — an empty feed while the new area loads is
+    //    worse than briefly stale distances, and step 3 replaces them section
+    //    by section as each one answers. Logged so a wrong-city feed is
+    //    traceable rather than mysterious.
+    if (cached != null && !cached.isNear(_lat!, _lng!)) {
+      log(
+        'ℹ️ Explore cache is ${cached.metersFrom(_lat!, _lng!).round()}m away — '
+        'showing it while the new area loads',
+      );
+    }
+
     locating.value = false;
+
+    // 3. Always revalidate. Cards already showing stay put until their
+    //    section's fresh data arrives, so nothing ever blanks out mid-scroll.
+    await loadAll(background: cached != null);
+  }
+
+  /// Pull-to-refresh. Re-reads GPS, so moving and pulling down picks up the new
+  /// area even when the cached one was still valid.
+  Future<void> refreshFeed() async {
+    final Position? pos = await LocationHelper.getCurrentPosition(
+      forceRefresh: true,
+    );
+    if (pos != null) {
+      _lat = pos.latitude;
+      _lng = pos.longitude;
+    }
     await loadAll();
   }
 
-  Future<void> refreshFeed() => _bootstrap();
+  void _applyCache(ExploreFeedCache cache) {
+    for (final s in sections) {
+      final cards = cache.sections[s.key];
+      if (cards != null && cards.isNotEmpty) s.spots.assignAll(cards);
+    }
+    log(
+      'ℹ️ Explore feed painted from cache '
+      '(${DateTime.now().difference(cache.savedAt).inMinutes} min old)',
+    );
+  }
 
   /// Sections load concurrently and render as each lands, so the first
   /// carousel appears without waiting on the slowest one.
-  Future<void> loadAll() async {
+  /// [background] true when cards are already on screen: the per-section
+  /// skeletons are suppressed so the existing cards stay readable while their
+  /// replacements load.
+  Future<void> loadAll({bool background = false}) async {
     final lat = _lat, lng = _lng;
     if (lat == null || lng == null) return;
-    await Future.wait(sections.map((s) => _loadSection(s, lat, lng)));
+    if (background) refreshingInBackground.value = true;
+    try {
+      await Future.wait(
+        sections.map((s) => _loadSection(s, lat, lng, background: background)),
+      );
+      await _persist(lat, lng);
+    } finally {
+      refreshingInBackground.value = false;
+    }
   }
 
-  Future<void> _loadSection(FeedSection s, double lat, double lng) async {
+  /// Store only what actually came back — a section that failed keeps its
+  /// previous cards rather than caching an empty list over good data.
+  Future<void> _persist(double lat, double lng) async {
+    final payload = <String, List<SpotCardModel>>{};
+    for (final s in sections) {
+      if (s.spots.isNotEmpty) payload[s.key] = s.spots.toList();
+    }
+    if (payload.isEmpty) return;
+    await ExploreFeedCache.save(lat: lat, lng: lng, sections: payload);
+  }
+
+  Future<void> _loadSection(
+    FeedSection s,
+    double lat,
+    double lng, {
+    bool background = false,
+  }) async {
     if (s.categoryKey.isEmpty) return; // no endpoint behind it yet
-    s.loading.value = true;
+    // Skeletons only when there is nothing to look at yet.
+    s.loading.value = !background || s.spots.isEmpty;
     try {
       // Three sections have dedicated endpoints; the rest are plain categories.
       final spots = switch (s.categoryKey) {
@@ -183,7 +270,9 @@ class ExploreFeedController extends GetxController {
           pageSize: previewCount,
         ),
       };
-      s.spots.assignAll(spots);
+      // An empty response during a background refresh keeps the cached cards:
+      // a transient server hiccup shouldn't wipe a section the user is reading.
+      if (spots.isNotEmpty || !background) s.spots.assignAll(spots);
     } finally {
       s.loading.value = false;
     }
