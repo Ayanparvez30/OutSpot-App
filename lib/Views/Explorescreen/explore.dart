@@ -11,6 +11,8 @@ import 'package:outspot/CommonWidgets/ExploreWidgets/explore_stories.dart';
 import 'package:outspot/Utils/colors.dart';
 import 'package:outspot/Utils/routes.dart';
 import 'package:outspot/Views/Explorescreen/explore_controller.dart';
+import 'package:outspot/Views/Explorescreen/redesign/explore_feed_redesign.dart';
+import 'package:outspot/Views/Explorescreen/redesign/explore_redesign_flag.dart';
 
 class Explore extends StatefulWidget {
   const Explore({super.key});
@@ -222,6 +224,12 @@ class _ExploreState extends State<Explore> {
                                 child: const StoriesListSection(),
                               )
                               : const SizedBox.shrink(),
+                          // Redesign swaps the feed below the stories row.
+                          // See kUseExploreRedesign — one line back to the old
+                          // Trending card + category grid.
+                          if (kUseExploreRedesign)
+                            const ExploreFeedRedesign(embedded: true)
+                          else ...[
                           ExploreTrendingCard(
                             onTap: () {
                               // Trending now opens the SAME card list as every
@@ -260,6 +268,7 @@ class _ExploreState extends State<Explore> {
                               );
                             },
                           ),
+                          ],
                           SizedBox(height: 100.h),
                         ],
                       );

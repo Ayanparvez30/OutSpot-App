@@ -126,6 +126,7 @@ flutter:
     - assets/svg/level/
     - assets/svg/leaderboard/
     - assets/svg/icons/
+    - assets/svg/explore_redesign/
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
