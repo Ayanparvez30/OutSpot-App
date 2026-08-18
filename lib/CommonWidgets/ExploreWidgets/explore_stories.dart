@@ -13,8 +13,73 @@ import 'package:outspot/Views/Explorescreen/explore_controller.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 
+/// The redesign frames in Figma are drawn 393pt wide, but ScreenUtil's design
+/// size is 360 (see main.dart). Feeding raw Figma px straight into `.w` renders
+/// everything ~9% oversized, so convert first: `_fig(74).w` puts 74 Figma px on
+/// screen as 74 real px on a 393-wide device, and scales from there.
+double _fig(double figmaPx) => figmaPx * (360 / 393);
+
+/// Label under a friend's bubble: their real name, falling back to the username
+/// for accounts that never set one (the backend leaves both name fields null).
+String _displayName(StoryUser u) {
+  final full = '${u.firstName ?? ''} ${u.lastName ?? ''}'.trim();
+  return full.isNotEmpty ? full : u.username;
+}
+
+/// Story bubble metrics, straight off the "Stories Container" frame
+/// (node 7319:14451) of the App Redesign page.
+class _StoryDim {
+  /// Dialled down from the redesign's 74px ring on request — full size read too
+  /// heavy on a 360-wide phone. Every geometric value goes through this, so the
+  /// bubble stays proportionally true to Figma; change this one number to
+  /// resize the whole row.
+  static const double scale = 0.87;
+
+  static double _s(double figmaPx) => _fig(figmaPx) * scale;
+
+  static final double item = _s(74); // bubble width
+  static final double pairHeight = _s(108); // avatar stack, no label
+  static final double ring = _s(74); // outer ring diameter
+  static final double ringStroke = _s(2.5);
+  static final double cover = _s(64); // photo inside the ring
+  static final double miniMe = _s(41); // 3D character above the ring
+  static final double miniMeVisible = _s(36); // how much of it shows
+  static final double miniMeLeft = _s(17);
+
+  /// Minime avatars are full-body 768×1152 renders, but the redesign shows a
+  /// head-and-shoulders close-up. Head plus a little breathing room lands in
+  /// the top 440px square of that artwork, so the image is drawn 768/440 ≈
+  /// 1.75× the frame width and pinned top-centre; the frame crops the body,
+  /// and the shoulders run on behind the ring. Drawing the render whole
+  /// instead leaves the face about 14px wide — unreadable.
+  static const double miniMeZoom = 768 / 440;
+
+  /// Source aspect ratio of the minime renders (768×1152).
+  static const double miniMeAspect = 1152 / 768;
+  static final double ringTop = _s(34);
+  static final double labelGap = _fig(4);
+  static final double labelSize = _fig(12);
+  static final double labelHeight = _fig(16);
+  static final double gap = _fig(16); // between bubbles
+
+  /// Avatar stack + gap + label. The Explore screen reserves exactly this, so
+  /// resizing via [scale] can't leave the row's reserved height out of step.
+  static double get itemHeight => pairHeight + labelGap + labelHeight;
+
+  /// Unseen ring — #D4456A in the redesign (was #DD4141).
+  static const Color ringUnseen = Color(0xffD4456A);
+
+  /// Seen ring keeps the existing recessive dark tone; the redesign only
+  /// specifies the unseen state.
+  static const Color ringSeen = Color(0xff2A2A2E);
+}
+
 class StoriesListSection extends StatefulWidget {
   const StoriesListSection({super.key});
+
+  /// Height the Explore screen must reserve for the row. Derived from the same
+  /// metrics the bubbles use, so the two can't drift apart.
+  static double get rowHeight => _StoryDim.itemHeight.w;
 
   @override
   State<StoriesListSection> createState() => _StoriesListSectionState();
@@ -92,6 +157,7 @@ class _StoriesListSectionState extends State<StoriesListSection> {
               child: _CommunityBubble(
                 cover: cover,
                 overlay: overlay,
+                name: g.community.name,
                 isSeen: controller.isGroupSeen(g.stories),
                 onTap: () async {
                   controller.markStoriesSeen(g.stories);
@@ -142,6 +208,7 @@ class _StoriesListSectionState extends State<StoriesListSection> {
               cover: latest.mediaUrl ?? '',
               overlay: latest.user.avatarUrl ?? '',
               stories: stories,
+              name: _displayName(latest.user),
               // Friends tab shows just the friend — the community overlay
               // (dual avatar) belongs only on the All tab.
               communityLogo: '',
@@ -170,6 +237,7 @@ class _StoriesListSectionState extends State<StoriesListSection> {
               cover: latest.mediaUrl ?? '',
               overlay: avatarToUse,
               stories: stories,
+              name: _displayName(latest.user),
               communityLogo:
                   latest.relation == 'friend-and-community'
                       ? (latest.primaryCommunity?.imageUrl ?? '')
@@ -192,6 +260,7 @@ class _StoriesListSectionState extends State<StoriesListSection> {
               cover: cover,
               overlay: g.community.imageUrl ?? '',
               stories: g.stories,
+              name: g.community.name,
               community: g.community,
               communityHasMore: g.hasMore,
               communityPage: g.page,
@@ -237,6 +306,7 @@ class _StoriesListSectionState extends State<StoriesListSection> {
                     ? _CommunityBubble(
                       cover: it.cover,
                       overlay: it.overlay,
+                      name: it.name,
                       isSeen: seen,
                       onTap: () async {
                         controller.markStoriesSeen(it.stories);
@@ -259,6 +329,7 @@ class _StoriesListSectionState extends State<StoriesListSection> {
                     : _UserBubble(
                       cover: it.cover,
                       overlay: it.overlay,
+                      name: it.name,
                       isVideo: it.isVideo,
                       communityLogo: it.communityLogo,
                       isSeen: seen,
@@ -348,45 +419,56 @@ class _ShimmerBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Mirrors the real bubble's geometry so the row doesn't jump when the
+    // stories land.
     return Container(
-      margin: const EdgeInsets.only(right: 10),
-      width: 65.w,
-      height: 65.w,
-      child: Stack(
+      margin: EdgeInsets.only(right: _StoryDim.gap.w),
+      width: _StoryDim.item.w,
+      height: _StoryDim.itemHeight.w,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 65.w,
-            height: 65.w,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey.withOpacity(0.3), width: 2),
-            ),
-            child: ClipOval(child: const ShimmerPlaceholderCircle(size: 65)),
-          ),
-
-          Positioned(
-            bottom: 20.h,
-            right: -1.5.w,
-            child: Container(
-              width: 30.w,
-              height: 28.w,
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.grey.withOpacity(0.3),
-                  width: 2,
+          SizedBox(
+            width: _StoryDim.item.w,
+            height: _StoryDim.pairHeight.w,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 0,
+                  top: _StoryDim.ringTop.w,
+                  child: Container(
+                    width: _StoryDim.ring.w,
+                    height: _StoryDim.ring.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.grey.withOpacity(0.3),
+                        width: _StoryDim.ringStroke.w,
+                      ),
+                    ),
+                    child: ClipOval(
+                      child: ShimmerPlaceholderCircle(size: _StoryDim.ring.w),
+                    ),
+                  ),
                 ),
-              ),
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.transparent,
-                child: ClipOval(
-                  child: const ShimmerPlaceholderCircle(size: 30),
+                Positioned(
+                  left: _StoryDim.miniMeLeft.w,
+                  top: 0,
+                  child: ClipRect(
+                    child: SizedBox(
+                      width: _StoryDim.miniMe.w,
+                      height: _StoryDim.miniMeVisible.w,
+                      child: ShimmerPlaceholderCircle(
+                        size: _StoryDim.miniMe.w,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
+          SizedBox(height: _StoryDim.labelGap.w),
+          ShimmerPlaceholderCircle(size: _StoryDim.labelSize.w),
         ],
       ),
     );
@@ -402,6 +484,9 @@ class _BubbleItem {
   final String cover, overlay;
   final List<StoryModel> stories;
   final CommunityModel? community;
+
+  /// Label under the bubble — the friend's username, or the community's name.
+  final String name;
 
   /// Community logo to overlay on a friend bubble when the story is
   /// friend-and-community (empty = no overlay).
@@ -420,6 +505,7 @@ class _BubbleItem {
     required this.overlay,
     required this.stories,
     this.community,
+    this.name = '',
     this.communityLogo = '',
     this.communityHasMore = false,
     this.communityPage = 1,
@@ -437,6 +523,9 @@ class _UserBubble extends StatefulWidget {
   /// Already-viewed → grey ring; unseen → red ring.
   final bool isSeen;
 
+  /// Username shown under the bubble (redesign). Empty = no label.
+  final String name;
+
   const _UserBubble({
     required this.cover,
     required this.overlay,
@@ -444,6 +533,7 @@ class _UserBubble extends StatefulWidget {
     required this.onTap,
     this.communityLogo = '',
     this.isSeen = false,
+    this.name = '',
   });
 
   @override
@@ -501,134 +591,176 @@ class _UserBubbleState extends State<_UserBubble> {
     );
   }
 
+  /// The photo inside the ring — video thumbnail, cached network image, or a
+  /// themed fallback once the media has expired (404).
+  Widget _coverImage() {
+    if (_isVideoUrl) {
+      if (_thumbLoading) {
+        return ShimmerPlaceholderCircle(size: _StoryDim.cover.w);
+      }
+      if (_thumbPath != null) {
+        return Image.file(
+          File(_thumbPath!),
+          fit: BoxFit.cover,
+          width: _StoryDim.cover.w,
+          height: _StoryDim.cover.w,
+          filterQuality: FilterQuality.high,
+        );
+      }
+      return const Icon(Icons.videocam, color: Colors.white54);
+    }
+    return CachedNetworkImage(
+      imageUrl: widget.cover,
+      fit: BoxFit.cover,
+      placeholder: (c, _) => ShimmerPlaceholderCircle(size: _StoryDim.cover.w),
+      // Story media gone (expired/deleted → 404). Show a clean themed
+      // placeholder, not a broken-image glyph.
+      errorWidget: (c, _, __) => _coverFallback(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
-        margin: const EdgeInsets.only(right: 10),
-        width: 65.w,
-        height: 65.w,
-        child: Stack(
+        margin: EdgeInsets.only(right: _StoryDim.gap.w),
+        width: _StoryDim.item.w,
+        height: _StoryDim.itemHeight.w,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 65.w,
-              height: 65.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                // Seen → dark, recessive ring that sits back into the theme;
-                // unseen → brand red. Seen ring is a touch thicker so it still
-                // reads as a ring rather than a faint hairline.
-                border: Border.all(
-                  color:
-                      widget.isSeen
-                          ? const Color(0xff2A2A2E)
-                          : const Color(0xffDD4141),
-                  width: widget.isSeen ? 2.5 : 2,
-                ),
-              ),
-              child: ClipOval(
-                child:
-                    _isVideoUrl
-                        ? (_thumbLoading
-                            ? const ShimmerPlaceholderCircle(size: 60)
-                            : _thumbPath != null
-                            ? Image.file(
-                              File(_thumbPath!),
-                              fit: BoxFit.cover,
-                              width: 65.w,
-                              height: 65.w,
-                              filterQuality: FilterQuality.high,
-                            )
-                            : const Icon(Icons.videocam, color: Colors.white54))
-                        : CachedNetworkImage(
-                          imageUrl: widget.cover,
-                          fit: BoxFit.cover,
-                          placeholder:
-                              (c, _) =>
-                                  const ShimmerPlaceholderCircle(size: 60),
-                          // Story media gone (expired/deleted → 404). Show a
-                          // clean themed placeholder, not a broken-image glyph.
-                          errorWidget: (c, _, __) => _coverFallback(),
-                        ),
-              ),
-            ),
-            // Bottom-right badge: the user's avatar in FRONT, with the community
-            // avatar stacked BEHIND it (back-stack look) for friend-and-community
-            // stories. The community no longer sits on top of the story cover.
-            if (widget.overlay.isNotEmpty)
-              Positioned(
-                bottom: 18.h,
-                right: -1.5.w,
-                child: SizedBox(
-                  // Narrow box → the user avatar covers most of the community
-                  // one, leaving only a small sliver peeking behind it.
-                  width: widget.communityLogo.isNotEmpty ? 33.w : 28.w,
-                  height: 28.w,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // BACK: community avatar peeking out from behind-left.
-                      if (widget.communityLogo.isNotEmpty)
-                        Positioned(
-                          left: 0,
-                          top: 2.h,
-                          child: Container(
-                            width: 25.w,
-                            height: 25.w,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              // border: Border.all(
-                              //   color: const Color(0xff2D0731),
-                              //   width: 1.5,
-                              // ),
-                            ),
-                            child: ClipOval(
+            SizedBox(
+              width: _StoryDim.item.w,
+              height: _StoryDim.pairHeight.w,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // The user's 3D character peeking out above the ring. Drawn
+                  // first so the ring overlaps its lower edge, exactly as the
+                  // redesign clips the bottom 5px of the 41px artwork.
+                  if (widget.overlay.isNotEmpty)
+                    Positioned(
+                      left: _StoryDim.miniMeLeft.w,
+                      top: 0,
+                      child: ClipRect(
+                        child: SizedBox(
+                          width: _StoryDim.miniMe.w,
+                          height: _StoryDim.miniMeVisible.w,
+                          child: OverflowBox(
+                            alignment: Alignment.topCenter,
+                            maxWidth: double.infinity,
+                            maxHeight: double.infinity,
+                            child: SizedBox(
+                              // Oversized on purpose, pinned top-centre: the
+                              // frame crops everything below the shoulders so
+                              // only the face shows, as in the redesign.
+                              width: _StoryDim.miniMe.w * _StoryDim.miniMeZoom,
+                              height:
+                                  _StoryDim.miniMe.w *
+                                  _StoryDim.miniMeZoom *
+                                  _StoryDim.miniMeAspect,
                               child: CachedNetworkImage(
-                                imageUrl: widget.communityLogo,
+                                imageUrl: widget.overlay,
                                 fit: BoxFit.cover,
+                                alignment: Alignment.topCenter,
+                                filterQuality: FilterQuality.medium,
                                 errorWidget:
-                                    (_, __, ___) => const Icon(
-                                      Icons.groups,
-                                      size: 12,
-                                      color: Colors.white,
-                                    ),
+                                    (_, __, ___) => const SizedBox.shrink(),
                               ),
                             ),
                           ),
                         ),
-                      // FRONT: the user's avatar.
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          width: 28.w,
-                          height: 28.w,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            // border: Border.all(
-                            //   color: const Color(0xff2D0731),
-                            //   width: 1.5,
-                            // ),
-                          ),
-                          child: ClipOval(
-                            child: CachedNetworkImage(
-                              imageUrl: widget.overlay,
-                              alignment: Alignment.topCenter,
-                              fit: BoxFit.cover,
-                              errorWidget:
-                                  (context, url, error) => const Icon(
-                                    Icons.person,
-                                    color: Colors.grey,
-                                  ),
-                            ),
+                      ),
+                    ),
+                  Positioned(
+                    left: 0,
+                    top: _StoryDim.ringTop.w,
+                    child: Container(
+                      width: _StoryDim.ring.w,
+                      height: _StoryDim.ring.w,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        // White fill shows as a thin gap between ring and photo.
+                        color: Colors.white,
+                        // Seen → dark, recessive ring that sits back into the
+                        // theme; unseen → the redesign's brand pink.
+                        border: Border.all(
+                          color:
+                              widget.isSeen
+                                  ? _StoryDim.ringSeen
+                                  : _StoryDim.ringUnseen,
+                          width: _StoryDim.ringStroke.w,
+                        ),
+                      ),
+                      child: Center(
+                        child: ClipOval(
+                          child: SizedBox(
+                            width: _StoryDim.cover.w,
+                            height: _StoryDim.cover.w,
+                            child: _coverImage(),
                           ),
                         ),
                       ),
-                    ],
+                    ),
+                  ),
+                  // Friend-and-community stories keep their community badge.
+                  // The redesign doesn't specify this case, so rather than drop
+                  // the distinction it sits as a small marker on the ring.
+                  if (widget.communityLogo.isNotEmpty)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: _fig(24).w,
+                        height: _fig(24).w,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xff2D0731),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: widget.communityLogo,
+                            fit: BoxFit.cover,
+                            errorWidget:
+                                (_, __, ___) => const Icon(
+                                  Icons.groups,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (widget.name.isNotEmpty) ...[
+              SizedBox(height: _StoryDim.labelGap.w),
+              SizedBox(
+                width: _StoryDim.item.w,
+                // Fixed height so a font that renders a hair taller than the
+                // 16px line box can't overflow the 128px bubble.
+                height: _StoryDim.labelHeight.w,
+                child: Center(
+                  child: Text(
+                    widget.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: _StoryDim.labelSize.sp,
+                      fontWeight: FontWeight.w400,
+                      height: 1,
+                    ),
                   ),
                 ),
               ),
+            ],
           ],
         ),
       ),
@@ -640,15 +772,25 @@ class _CommunityBubble extends StatelessWidget {
   final String cover, overlay;
   final VoidCallback onTap;
   final bool isSeen;
+
+  /// Community name shown under the bubble (redesign).
+  final String name;
+
   const _CommunityBubble({
     required this.cover,
     required this.overlay,
     required this.onTap,
     this.isSeen = false,
+    this.name = '',
   });
   @override
-  Widget build(BuildContext context) =>
-      _UserBubble(cover: cover, overlay: overlay, onTap: onTap, isSeen: isSeen);
+  Widget build(BuildContext context) => _UserBubble(
+    cover: cover,
+    overlay: overlay,
+    onTap: onTap,
+    isSeen: isSeen,
+    name: name,
+  );
 }
 
 /// Cached video thumbnail for story bubbles

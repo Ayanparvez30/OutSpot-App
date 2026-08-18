@@ -218,7 +218,7 @@ class _ExploreState extends State<Explore> {
                         children: [
                           hasStories
                               ? SizedBox(
-                                height: 80.h,
+                                height: StoriesListSection.rowHeight,
                                 child: const StoriesListSection(),
                               )
                               : const SizedBox.shrink(),
@@ -270,7 +270,7 @@ class _ExploreState extends State<Explore> {
                         children: [
                           hasStories
                               ? SizedBox(
-                                height: 80.h,
+                                height: StoriesListSection.rowHeight,
                                 child: const StoriesListSection(),
                               )
                               : const SizedBox.shrink(),
