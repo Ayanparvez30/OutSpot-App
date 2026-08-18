@@ -240,6 +240,77 @@ class ExploreFeedService {
     }
   }
 
+  /// Recent searches, newest first. Server-side so the list survives a
+  /// reinstall; returns `(id, query)` pairs because deleting one entry needs
+  /// its id.
+  static Future<List<({int id, String query})>> searchHistory() async {
+    try {
+      final res = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/explore/search-history'),
+        headers: await _headers(),
+      );
+      if (res.statusCode != 200) return const [];
+      final body = jsonDecode(res.body);
+      final list = body is Map ? body['history'] : null;
+      if (list is! List) return const [];
+      return list
+          .whereType<Map>()
+          .map(
+            (e) => (
+              id: int.tryParse(e['id']?.toString() ?? '') ?? 0,
+              query: e['query']?.toString() ?? '',
+            ),
+          )
+          .where((e) => e.id > 0 && e.query.isNotEmpty)
+          .toList();
+    } catch (e) {
+      log('❌ searchHistory failed: $e');
+      return const [];
+    }
+  }
+
+  /// Record a phrase. Searching the same thing twice bumps it rather than
+  /// duplicating, so callers don't have to check first.
+  static Future<void> addSearchHistory(String query) async {
+    if (query.trim().isEmpty) return;
+    try {
+      await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/explore/search-history'),
+        headers: await _headers(),
+        body: jsonEncode({'query': query.trim()}),
+      );
+    } catch (e) {
+      // History is a convenience; failing to record it must not surface.
+      log('⚠️ addSearchHistory failed: $e');
+    }
+  }
+
+  static Future<bool> deleteSearchHistory(int id) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('${ApiConstants.baseUrl}/explore/search-history/$id'),
+        headers: await _headers(),
+      );
+      return res.statusCode == 200;
+    } catch (e) {
+      log('❌ deleteSearchHistory failed: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> clearSearchHistory() async {
+    try {
+      final res = await http.delete(
+        Uri.parse('${ApiConstants.baseUrl}/explore/search-history'),
+        headers: await _headers(),
+      );
+      return res.statusCode == 200;
+    } catch (e) {
+      log('❌ clearSearchHistory failed: $e');
+      return false;
+    }
+  }
+
   /// Backs the search field. Mirrors the parameters the current screen sends.
   static Future<List<SpotCardModel>> search({
     required String query,

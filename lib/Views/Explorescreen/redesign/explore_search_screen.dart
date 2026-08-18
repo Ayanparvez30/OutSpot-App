@@ -51,11 +51,20 @@ class _ExploreSearchScreenState extends State<ExploreSearchScreen> {
   /// Guards against a slow earlier request overwriting a newer one's results.
   int _requestId = 0;
 
+  /// Recent searches, shown while the field is empty.
+  List<({int id, String query})> _history = [];
+
   @override
   void initState() {
     super.initState();
     // Figma opens this screen with the keyboard already up.
     WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    final h = await ExploreFeedService.searchHistory();
+    if (mounted) setState(() => _history = h);
   }
 
   @override
@@ -95,6 +104,26 @@ class _ExploreSearchScreenState extends State<ExploreSearchScreen> {
       _results = res;
       _searching = false;
     });
+
+    // Record only searches that found something — a half-typed word that
+    // matched nothing isn't worth offering back later.
+    if (res.isNotEmpty) {
+      await ExploreFeedService.addSearchHistory(q);
+      await _loadHistory();
+    }
+  }
+
+  Future<void> _removeHistory(({int id, String query}) entry) async {
+    setState(() => _history = _history.where((e) => e.id != entry.id).toList());
+    final ok = await ExploreFeedService.deleteSearchHistory(entry.id);
+    if (!ok) await _loadHistory(); // put it back if the server disagreed
+  }
+
+  Future<void> _clearHistory() async {
+    final previous = _history;
+    setState(() => _history = []);
+    final ok = await ExploreFeedService.clearSearchHistory();
+    if (!ok && mounted) setState(() => _history = previous);
   }
 
   @override
@@ -139,10 +168,9 @@ class _ExploreSearchScreenState extends State<ExploreSearchScreen> {
 
   Widget _body(double pad) {
     if (_query.trim().isEmpty) {
-      return _note(
-        'Search for a spot',
-        'Try a name, a cuisine or a neighbourhood.',
-      );
+      return _history.isEmpty
+          ? _note('Search for a spot', 'Try a name, a cuisine or a neighbourhood.')
+          : _historyList(pad);
     }
     if (_searching && _results.isEmpty) {
       return const Center(
@@ -180,6 +208,90 @@ class _ExploreSearchScreenState extends State<ExploreSearchScreen> {
         userLng: widget.lng,
       ),
       routeName: Routes.placeDetails,
+    );
+  }
+
+  /// Recent searches. Tapping one re-runs it live rather than replaying old
+  /// results, which would be stale.
+  Widget _historyList(double pad) {
+    return ListView(
+      padding: EdgeInsets.fromLTRB(pad, 0, pad, figPx(24).w),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(bottom: figPx(8).w),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Recent searches',
+                  style: ExploreText.heading.copyWith(fontSize: figPx(14).sp),
+                ),
+              ),
+              GestureDetector(
+                onTap: _clearHistory,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: figPx(4).w),
+                  child: Text(
+                    'Clear all',
+                    style: ExploreText.meta.copyWith(color: ExploreColors.gold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        for (final entry in _history)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              _controller.text = entry.query;
+              _onChanged(entry.query);
+              _run(entry.query);
+            },
+            child: Container(
+              height: figPx(48).w,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: ExploreColors.border, width: 1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.history,
+                    size: figPx(18).w,
+                    color: ExploreColors.textMuted,
+                  ),
+                  SizedBox(width: figPx(12).w),
+                  Expanded(
+                    child: Text(
+                      entry.query,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ExploreText.meta.copyWith(
+                        color: ExploreColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _removeHistory(entry),
+                    child: Padding(
+                      padding: EdgeInsets.all(figPx(6).w),
+                      child: Icon(
+                        Icons.close,
+                        size: figPx(16).w,
+                        color: ExploreColors.textMuted,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
