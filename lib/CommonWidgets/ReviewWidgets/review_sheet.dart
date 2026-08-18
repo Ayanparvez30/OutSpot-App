@@ -79,7 +79,9 @@ class _ReviewSheetState extends State<ReviewSheet> {
     if (ok) {
       Get.back(result: true);
       AppSnackbar.success(
-        _isEditing ? 'Your review has been updated.' : 'Thanks for your review!',
+        _isEditing
+            ? 'Your review has been updated.'
+            : 'Thanks for your review!',
       );
     } else {
       AppSnackbar.error('Could not save your review. Please try again.');
@@ -98,24 +100,30 @@ class _ReviewSheetState extends State<ReviewSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // Lifts the sheet above the keyboard while the comment box has focus.
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF3E165B), Color(0xFF1C011F)],
-          ),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-          border: Border.all(color: AppColors.inputBorderColor, width: 1),
+    // No keyboard padding here on purpose: Get.bottomSheet already wraps the
+    // sheet in `EdgeInsets.only(bottom: viewInsets.bottom)`. Adding our own
+    // lifted it a second keyboard-height off the bottom, leaving the sheet
+    // stranded near the top of the screen with a gap beneath it.
+    //
+    // The route hands down the full screen height minus the keyboard, so the
+    // scroll view below shrink-wraps when the content fits and scrolls when it
+    // doesn't. That is the whole fix for the overflow.
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF3E165B), Color(0xFF1C011F)],
         ),
-        padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 24.h),
-        child: SafeArea(
-          top: false,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        border: Border.all(color: AppColors.inputBorderColor, width: 1),
+      ),
+      padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 24.h),
+      child: SafeArea(
+        top: false,
+        // Scrolls rather than overflows once the keyboard eats the height,
+        // and carries the focused comment box into view on its own.
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -164,7 +172,9 @@ class _ReviewSheetState extends State<ReviewSheet> {
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 6.w),
                       child: Icon(
-                        filled ? Icons.star_rounded : Icons.star_outline_rounded,
+                        filled
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
                         size: 40.sp,
                         color:
                             filled
@@ -265,7 +275,9 @@ class _ReviewSheetState extends State<ReviewSheet> {
                                   ),
                                 )
                                 : Text(
-                                  _isEditing ? 'Update review' : 'Submit review',
+                                  _isEditing
+                                      ? 'Update review'
+                                      : 'Submit review',
                                   style: GoogleFonts.notoSans(
                                     fontSize: 15.sp,
                                     fontWeight: FontWeight.w600,
