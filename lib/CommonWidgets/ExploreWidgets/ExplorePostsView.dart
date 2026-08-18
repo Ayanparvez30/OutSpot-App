@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:outspot/CommonWidgets/ExploreWidgets/ExplorePostCard.dart';
+import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_redesign_tokens.dart';
+import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_search_and_filters.dart';
 import 'package:outspot/Views/Explorescreen/explore_controller.dart';
 
 class ExplorePostsView extends StatelessWidget {
@@ -18,40 +19,15 @@ class ExplorePostsView extends StatelessWidget {
 
     return Column(
       children: [
-        // 1. Search Bar
-        TextField(
+        // 1. Search Bar — same field the Explore feed uses, so the two tabs
+        // read as one design. Only the look is shared; the controller and
+        // filtering behaviour below are untouched.
+        SizedBox(height: figPx(12).w),
+        ExploreSearchField(
           controller: controller.postSearchController,
           onChanged: controller.filterPosts,
-          style: GoogleFonts.notoSans(
-            fontSize: 17.sp,
-            fontWeight: FontWeight.w300,
-            color: const Color(0xff793D94),
-          ),
-          decoration: InputDecoration(
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 25.w,
-              vertical: 10.h,
-            ),
-            hintText: "Search stories...",
-            hintStyle: GoogleFonts.notoSans(
-              fontSize: 17.sp,
-              fontWeight: FontWeight.w300,
-              color: const Color(0xff793D94),
-            ),
-            suffixIcon: Padding(
-              padding: EdgeInsets.all(13.sp),
-              child: SvgPicture.asset(
-                "assets/svg/leaderboard/search.svg",
-                height: 18.sp,
-                width: 18.sp,
-              ),
-            ),
-            border: _outlineInputBorder(),
-            enabledBorder: _outlineInputBorder(),
-            focusedBorder: _outlineInputBorder(isFocused: true),
-            filled: true,
-            fillColor: const Color(0xff2D0731),
-          ),
+          onClear: () => controller.filterPosts(''),
+          hintText: 'Search stories...',
         ),
 
         SizedBox(height: 20.h),
@@ -143,16 +119,6 @@ class ExplorePostsView extends StatelessWidget {
 
         SizedBox(height: 80.h),
       ],
-    );
-  }
-
-  OutlineInputBorder _outlineInputBorder({bool isFocused = false}) {
-    return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(30.r),
-      borderSide: BorderSide(
-        color: const Color(0xff703A8B),
-        width: isFocused ? 2.0.w : 1.w,
-      ),
     );
   }
 }

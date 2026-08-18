@@ -82,6 +82,12 @@ class ExploreFeedController extends GetxController {
     ),
   ];
 
+  /// Cards fetched per carousel on the feed. Deliberately small: nine sections
+  /// × ten places meant a long wait before anything rendered, and only two or
+  /// three cards are ever visible in a row anyway. The heading's arrow opens
+  /// the full list.
+  static const int previewCount = 3;
+
   final Rxn<ExploreCategory> selectedCategory = Rxn<ExploreCategory>();
   final RxList<SpotCardModel> searchResults = <SpotCardModel>[].obs;
   final RxBool searching = false.obs;
@@ -93,6 +99,11 @@ class ExploreFeedController extends GetxController {
   /// Saved place ids. Local-only until a SavedPlace table exists — tapping the
   /// bookmark updates the icon and nothing else, by design.
   final RxSet<String> savedPlaceIds = <String>{}.obs;
+
+  /// Exposed so the search and expanded-category screens can reuse the fix
+  /// this controller already resolved instead of asking for GPS again.
+  double? get lat => _lat;
+  double? get lng => _lng;
 
   double? _lat;
   double? _lng;
@@ -152,20 +163,24 @@ class ExploreFeedController extends GetxController {
         'trending' => await ExploreFeedService.trendingThisWeek(
           lat: lat,
           lng: lng,
+          limit: previewCount,
         ),
         'friends-visited' => await ExploreFeedService.friendsVisited(
           lat: lat,
           lng: lng,
+          limit: previewCount,
         ),
         'points-boost' => await ExploreFeedService.pointsBoost(
           lat: lat,
           lng: lng,
+          limit: previewCount,
         ),
         _ => await ExploreFeedService.category(
           key: s.categoryKey,
           title: s.title,
           lat: lat,
           lng: lng,
+          pageSize: previewCount,
         ),
       };
       s.spots.assignAll(spots);

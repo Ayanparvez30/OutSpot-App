@@ -39,6 +39,16 @@ class ExploreSearchField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final VoidCallback? onClear;
+  final FocusNode? focusNode;
+
+  /// Placeholder copy. Defaults to the Explore feed's wording; the Stories tab
+  /// passes its own so both fields can share one design.
+  final String hintText;
+
+  /// When set, the field becomes a button: taps fire this instead of opening a
+  /// keyboard. The feed uses it to push the dedicated search screen, which is
+  /// how the redesign models search.
+  final VoidCallback? onTap;
 
   const ExploreSearchField({
     super.key,
@@ -46,11 +56,14 @@ class ExploreSearchField extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.onClear,
+    this.focusNode,
+    this.onTap,
+    this.hintText = 'Search spots...',
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final field = Container(
       height: ExploreDim.searchHeight.w,
       padding: EdgeInsets.symmetric(horizontal: ExploreDim.searchPadH.w),
       decoration: BoxDecoration(
@@ -69,6 +82,9 @@ class ExploreSearchField extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
+              focusNode: focusNode,
+              readOnly: onTap != null,
+              onTap: onTap,
               onChanged: onChanged,
               onSubmitted: onSubmitted,
               textInputAction: TextInputAction.search,
@@ -80,7 +96,7 @@ class ExploreSearchField extends StatelessWidget {
                 isDense: true,
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
-                hintText: 'Search spots...',
+                hintText: hintText,
                 hintStyle: ExploreText.searchField,
               ),
             ),
@@ -109,6 +125,14 @@ class ExploreSearchField extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    if (onTap == null) return field;
+    // Absorb taps anywhere on the pill, not just on the text itself.
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AbsorbPointer(child: field),
     );
   }
 }

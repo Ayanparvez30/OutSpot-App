@@ -35,21 +35,33 @@ class SpotCard extends StatelessWidget {
   final bool isSaved;
   final VoidCallback? onSave;
 
+  /// Full-width variant for the expanded-category screen — Figma draws the
+  /// same card at 361×249 there, with a taller 140px photo. Null keeps the
+  /// carousel's 240×241.
+  final double? width;
+  final double? imageHeight;
+
   const SpotCard({
     super.key,
     required this.spot,
     this.onTap,
     this.isSaved = false,
     this.onSave,
+    this.width,
+    this.imageHeight,
   });
+
+  double get _w => width ?? ExploreDim.cardWidth.w;
+  double get _imgH => imageHeight ?? ExploreDim.cardImageHeight.w;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: ExploreDim.cardWidth.w,
-        height: ExploreDim.cardHeight.w,
+        width: _w,
+        height:
+            ExploreDim.cardHeight.w + (_imgH - ExploreDim.cardImageHeight.w),
         decoration: BoxDecoration(
           color: ExploreColors.surface,
           borderRadius: BorderRadius.circular(ExploreDim.cardRadius.w),
@@ -68,8 +80,8 @@ class SpotCard extends StatelessWidget {
 
   Widget _photo() {
     return SizedBox(
-      width: ExploreDim.cardWidth.w,
-      height: ExploreDim.cardImageHeight.w,
+      width: _w,
+      height: _imgH,
       child: Stack(
         children: [
           Positioned.fill(
@@ -214,13 +226,15 @@ class SpotCard extends StatelessWidget {
   /// `Trending · Café · 0.2 mi` — separators only appear between pieces that
   /// actually exist.
   Widget _infoLine1() {
-    final parts = <Widget>[
+    // Only the tags may shrink — "1.5 mi" is short and losing it to an
+    // ellipsis helps nobody.
+    final parts = <(Widget, bool)>[
       if (spot.category.isNotEmpty)
-        _tag(_iconForLabel(spot.category), spot.category),
+        (_tag(_iconForLabel(spot.category), spot.category), true),
       if (spot.typeLabel.isNotEmpty)
-        _tag(_iconForLabel(spot.typeLabel), spot.typeLabel),
+        (_tag(_iconForLabel(spot.typeLabel), spot.typeLabel), true),
       if (spot.distanceLabel.isNotEmpty)
-        Text(spot.distanceLabel, style: ExploreText.meta),
+        (Text(spot.distanceLabel, style: ExploreText.meta), false),
     ];
     return SizedBox(
       height: ExploreDim.metaRowHeight.w,
@@ -230,25 +244,39 @@ class SpotCard extends StatelessWidget {
 
   /// `$ · Open · ★ 4.4 (449) · ♿`
   Widget _infoLine2() {
-    final parts = <Widget>[
+    // Nothing here shrinks: every piece is a few characters, and truncating
+    // "(647)" to "(..." — which equal-flex sharing did — reads as broken.
+    final parts = <(Widget, bool)>[
       if (spot.priceRange.isNotEmpty)
-        Text(spot.priceRange, style: ExploreText.meta),
+        (Text(spot.priceRange, style: ExploreText.meta), false),
       if (spot.openNow != null)
-        Text(
-          spot.openNow! ? 'Open' : 'Closed',
-          style: ExploreText.status(spot.openNow!),
+        (
+          Text(
+            spot.openNow! ? 'Open' : 'Closed',
+            style: ExploreText.status(spot.openNow!),
+          ),
+          false,
         ),
-      if (spot.rating > 0) _ratingChip(),
+      if (spot.rating > 0) (_ratingChip(), false),
       if (spot.accessible)
-        ExploreIcons.svg(
-          ExploreIcons.cardAccessible,
-          size: ExploreDim.metaIcon.w,
-          color: ExploreColors.textMuted,
+        (
+          ExploreIcons.svg(
+            ExploreIcons.cardAccessible,
+            size: ExploreDim.metaIcon.w,
+            color: ExploreColors.textMuted,
+          ),
+          false,
         ),
     ];
     return SizedBox(
       height: ExploreDim.metaRowHeight.w,
-      child: _separated(parts, ExploreDim.metaGapLine2.w),
+      // Scales down a hair instead of clipping when a place has unusually long
+      // values in every slot at once.
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: _separated(parts, ExploreDim.metaGapLine2.w, tight: true),
+      ),
     );
   }
 
@@ -269,7 +297,7 @@ class SpotCard extends StatelessWidget {
           // the metadata row past the card's right edge.
           Flexible(
             child: Text(
-              '(${_compact(spot.reviewCount)})',
+              '(${spot.reviewCountLabel})',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: ExploreText.meta,
@@ -378,7 +406,15 @@ class SpotCard extends StatelessWidget {
 
   /// Joins the pieces of a metadata line with `·`, skipping the separator when
   /// a piece was dropped — a place with no rating must not render `$ · · Open`.
-  Widget _separated(List<Widget> parts, double gap) {
+  /// Each part carries whether it may shrink. Wrapping *everything* in
+  /// [Flexible] looks harmless but splits the row's width equally between the
+  /// parts, so a two-character price kept as much room as a rating chip and the
+  /// review count got ellipsised away.
+  Widget _separated(
+    List<(Widget, bool)> parts,
+    double gap, {
+    bool tight = false,
+  }) {
     final children = <Widget>[];
     for (var i = 0; i < parts.length; i++) {
       if (i > 0) {
@@ -387,9 +423,13 @@ class SpotCard extends StatelessWidget {
           ..add(Text('·', style: ExploreText.meta))
           ..add(SizedBox(width: gap));
       }
-      children.add(parts[i] is Flexible ? parts[i] : Flexible(child: parts[i]));
+      final (child, flexible) = parts[i];
+      children.add(flexible ? Flexible(child: child) : child);
     }
-    return Row(mainAxisSize: MainAxisSize.max, children: children);
+    return Row(
+      mainAxisSize: tight ? MainAxisSize.min : MainAxisSize.max,
+      children: children,
+    );
   }
 
   /// Figma exports the tag glyphs for Trending and Café only; the pill set
@@ -429,14 +469,4 @@ class SpotCard extends StatelessWidget {
     return null;
   }
 
-  /// 1263 → "1,263", matching the review counts in the design.
-  static String _compact(int n) {
-    final s = n.toString();
-    final b = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
-      b.write(s[i]);
-    }
-    return b.toString();
-  }
 }

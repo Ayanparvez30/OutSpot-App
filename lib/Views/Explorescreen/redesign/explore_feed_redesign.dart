@@ -3,11 +3,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_redesign_tokens.dart';
 import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_search_and_filters.dart';
-import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/spot_card.dart';
 import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/spot_carousel.dart';
 import 'package:outspot/Model/redesign/spot_card_model.dart';
 import 'package:outspot/Utils/routes.dart';
+import 'package:outspot/Views/Explore_Category/placeDetailsScreen.dart';
+import 'package:outspot/Views/Explorescreen/redesign/explore_expanded_category.dart';
 import 'package:outspot/Views/Explorescreen/redesign/explore_feed_controller.dart';
+import 'package:outspot/Views/Explorescreen/redesign/explore_search_screen.dart';
 
 /// The redesigned Explore feed body: search field, seven category pills, then
 /// the carousels — Figma "EXPLORE" frame, node 7319:14445.
@@ -57,11 +59,51 @@ class _ExploreFeedRedesignState extends State<ExploreFeedRedesign> {
   /// padding, so re-applying the Figma margin doubled the gap on both sides.
   double get _pad => widget.embedded ? 0 : ExploreDim.pageMargin.w;
 
-  void _openSpot(SpotCardModel spot) {
+  /// The heading arrow — full list for one section.
+  void _openSection(String sectionKey, String title) {
+    final lat = c.lat, lng = c.lng;
+    if (lat == null || lng == null) return;
+    Get.to(
+      () => ExploreExpandedCategory(
+        sectionKey: sectionKey,
+        title: title,
+        lat: lat,
+        lng: lng,
+      ),
+    );
+  }
+
+  void _openSearch() {
+    final lat = c.lat, lng = c.lng;
+    if (lat == null || lng == null) return;
+    Get.to(
+      () => ExploreSearchScreen(
+        lat: lat,
+        lng: lng,
+        category: c.selectedCategory.value?.key ?? 'all',
+      ),
+    );
+  }
+
+  /// Opens the same [PlaceDetailsScreen] the old Explore category list opened,
+  /// with the same four arguments and the same `routeName`.
+  ///
+  /// That naming is load-bearing: the "Too Far" check-in dialog and the submit
+  /// flow both pop back to `Routes.placeDetails`, so pushing this screen any
+  /// other way would strand the user. `userLat`/`userLng` are equally required
+  /// — the screen fetches nothing without them and renders blank.
+  void _openSpot(SpotCardModel spot, String categoryKey) {
     if (spot.placeId.isEmpty) return;
-    // Reuses the existing place-detail route so the card behaves like every
-    // other place entry point in the app.
-    Get.toNamed(Routes.placeDetails, arguments: {'placeId': spot.placeId});
+    final lat = c.lat, lng = c.lng;
+    Get.to(
+      () => PlaceDetailsScreen(
+        place: spot.toExplorePlace(),
+        categoryKey: categoryKey,
+        userLat: lat,
+        userLng: lng,
+      ),
+      routeName: Routes.placeDetails,
+    );
   }
 
   @override
@@ -87,28 +129,19 @@ class _ExploreFeedRedesignState extends State<ExploreFeedRedesign> {
           padding: EdgeInsets.symmetric(horizontal: _pad),
           child: ExploreSearchField(
             controller: _search,
-            onChanged: c.onSearchChanged,
-            onSubmitted: c.runSearch,
-            onClear: c.clearSearch,
+            // Tapping opens the dedicated search screen, as in the redesign,
+            // rather than searching inline.
+            onTap: _openSearch,
           ),
         ),
         SizedBox(height: ExploreDim.carouselItemGap.w),
         ExploreCategoryFilter(
           horizontalPadding: _pad,
           selected: c.selectedCategory.value,
-          onSelect: (cat) {
-            c.selectCategory(cat);
-            // Keep an active search in step with the new filter.
-            if (c.searchQuery.value.trim().isNotEmpty) {
-              c.runSearch(c.searchQuery.value);
-            }
-          },
+          onSelect: c.selectCategory,
         ),
         SizedBox(height: figPx(20).w),
-        if (c.searchQuery.value.trim().isNotEmpty)
-          _searchResults()
-        else
-          ..._feed(),
+        ..._feed(),
       ];
 
       if (widget.embedded) {
@@ -153,7 +186,8 @@ class _ExploreFeedRedesignState extends State<ExploreFeedRedesign> {
             isLoading: s.loading.value,
             savedPlaceIds: c.savedPlaceIds,
             horizontalPadding: _pad,
-            onSpotTap: _openSpot,
+            onSeeAll: () => _openSection(s.categoryKey, s.title),
+            onSpotTap: (spot) => _openSpot(spot, s.categoryKey),
             onSave: c.toggleSaved,
           );
           // SpotCarousel collapses itself when a finished section is empty, so
@@ -167,55 +201,6 @@ class _ExploreFeedRedesignState extends State<ExploreFeedRedesign> {
           );
         }),
     ];
-  }
-
-  Widget _searchResults() {
-    return Obx(() {
-      if (c.searching.value && c.searchResults.isEmpty) {
-        return Padding(
-          padding: EdgeInsets.symmetric(vertical: figPx(32).w),
-          child: const Center(
-            child: CircularProgressIndicator(color: ExploreColors.gold),
-          ),
-        );
-      }
-      if (c.searchResults.isEmpty) {
-        return _emptyNote(
-          'No spots found',
-          'Try a different search or category.',
-        );
-      }
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: _pad),
-            child: Text(
-              'Results for "${c.searchQuery.value.trim()}"',
-              style: ExploreText.heading,
-            ),
-          ),
-          SizedBox(height: ExploreDim.carouselGap.w),
-          // Results use the same card, stacked instead of scrolled sideways —
-          // a full-width list reads better than a carousel for search.
-          for (final spot in c.searchResults)
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                _pad,
-                0,
-                _pad,
-                ExploreDim.carouselItemGap.w,
-              ),
-              child: SpotCard(
-                spot: spot,
-                isSaved: c.savedPlaceIds.contains(spot.placeId),
-                onTap: () => _openSpot(spot),
-                onSave: () => c.toggleSaved(spot),
-              ),
-            ),
-        ],
-      );
-    });
   }
 
   Widget _emptyNote(String title, String subtitle) {

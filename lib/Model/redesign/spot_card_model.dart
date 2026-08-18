@@ -14,6 +14,8 @@
 /// key entirely, and fall back instead of throwing.
 library;
 
+import 'package:outspot/Model/explore_place_model.dart';
+
 class SpotFriend {
   final int id;
   final String username;
@@ -45,10 +47,18 @@ class SpotCardModel {
   final String name;
   final String photoUrl;
 
+  /// Street address. Blank on the carousel card, shown on search result rows.
+  final String address;
+
   /// Points awarded for being spotted here.
   final int points;
 
   final double distanceMiles;
+
+  /// Needed by PlaceDetailsScreen, which takes an [ExplorePlaceModel].
+  final double lat;
+  final double lng;
+
   final double rating;
   final int reviewCount;
 
@@ -78,8 +88,11 @@ class SpotCardModel {
     required this.placeId,
     required this.name,
     required this.photoUrl,
+    required this.address,
     required this.points,
     required this.distanceMiles,
+    required this.lat,
+    required this.lng,
     required this.rating,
     required this.reviewCount,
     required this.openNow,
@@ -117,8 +130,11 @@ class SpotCardModel {
       placeId: _toStr(json['placeId'] ?? json['id']),
       name: _toStr(json['name']),
       photoUrl: photo,
+      address: _toStr(json['address']),
       points: _toInt(json['points'] ?? json['pointsCollected']),
       distanceMiles: _toDouble(json['distanceMiles']),
+      lat: _toDouble(json['lat']),
+      lng: _toDouble(json['lng']),
       rating: _toDouble(json['rating']),
       reviewCount: _toInt(json['userRatingsTotal'] ?? json['totalReviews']),
       openNow: _toBoolOrNull(json['openNow']),
@@ -158,6 +174,35 @@ class SpotCardModel {
           .join(' ');
     }
     return '';
+  }
+
+  /// The shape `PlaceDetailsScreen` expects.
+  ///
+  /// Every card in the redesign opens that same screen with the same arguments
+  /// the old Explore category list used, so check-in, the "Too Far" dialog and
+  /// the camera flow behind it keep working untouched.
+  ExplorePlaceModel toExplorePlace() => ExplorePlaceModel(
+    placeId: placeId,
+    name: name,
+    address: address,
+    photoUrl: photoUrl,
+    points: points,
+    distanceMiles: distanceMiles,
+    lat: lat,
+    lng: lng,
+    rating: rating,
+    userRatingsTotal: reviewCount,
+  );
+
+  /// "1,263" — thousands separated, as the review counts read in the design.
+  String get reviewCountLabel {
+    final s = reviewCount.toString();
+    final b = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
+      b.write(s[i]);
+    }
+    return b.toString();
   }
 
   /// "0.2 mi" — blank when the backend had no location to measure from.
