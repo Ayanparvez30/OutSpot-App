@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:outspot/CommonWidgets/MapWidgets/resturant_sheet.dart';
 import 'package:outspot/CommonWidgets/MapWidgets/returentListModel.dart';
 import 'package:outspot/Views/Mapscreen/map_controller.dart';
+import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_redesign_icons.dart';
 
 class MapBottomSheetHandler extends StatelessWidget {
   final MapController controller;
@@ -60,9 +61,12 @@ class MapBottomSheetHandler extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
               decoration: BoxDecoration(
-                color: const Color(0xff703A8B),
+                // Same fill and hairline as the search field floating above it,
+                // so the two map controls read as one family rather than the
+                // lighter purple this used to be.
+                color: const Color(0xff1E092A),
                 borderRadius: BorderRadius.circular(30.r),
-                border: Border.all(color: Colors.white24, width: 1),
+                border: Border.all(color: const Color(0xff703A8B), width: 1),
                 boxShadow: const [
                   BoxShadow(
                     color: Colors.black38,
@@ -74,7 +78,9 @@ class MapBottomSheetHandler extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.list_alt, color: Colors.white, size: 18.sp),
+                  // Whichever category the list is showing gets its own glyph;
+                  // a generic list icon said nothing the label didn't already.
+                  _categoryIcon(controller.selectedCategory.value),
                   SizedBox(width: 8.w),
                   Text(
                     label,
@@ -97,5 +103,24 @@ class MapBottomSheetHandler extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// The active category's Figma glyph. Falls back to a list icon when nothing
+  /// is selected — the pill then reads "Show list" and has no category to show.
+  Widget _categoryIcon(String key) {
+    final asset = switch (key.trim().toLowerCase()) {
+      'trending' => ExploreIcons.pillTrending,
+      'restaurants' => ExploreIcons.pillRestaurants,
+      'cafes' => ExploreIcons.pillCafes,
+      'bars' => ExploreIcons.pillBars,
+      'dessert' => ExploreIcons.pillDessert,
+      'outdoors' => ExploreIcons.pillOutdoors,
+      'venue events' || 'venue-events' => ExploreIcons.pillVenueEvents,
+      _ => null,
+    };
+    if (asset == null) {
+      return Icon(Icons.list_alt, color: Colors.white, size: 18.sp);
+    }
+    return ExploreIcons.svg(asset, size: 18.sp);
   }
 }
