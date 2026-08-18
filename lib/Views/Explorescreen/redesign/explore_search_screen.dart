@@ -120,7 +120,8 @@ class _ExploreSearchScreenState extends State<ExploreSearchScreen> {
           // The app's own back glyph, as every other pushed screen uses.
           Padding(
             padding: EdgeInsets.only(right: figPx(16).w),
-            child: const CustomBackButton(),
+            child: SizedBox(height: 35,
+              child: const CustomBackButton()),
           ),
           Expanded(
             child: ExploreSearchField(

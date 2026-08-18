@@ -8,6 +8,8 @@ import 'package:outspot/Utils/colors.dart';
 import 'package:outspot/Utils/routes.dart';
 import 'package:outspot/Views/Explorescreen/explore_controller.dart';
 import 'package:outspot/Views/Mainscreen/mainscreeen_controller.dart';
+import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_redesign_icons.dart';
+import 'package:outspot/Views/Explorescreen/redesign/explore_saved_screen.dart';
 
 class CustomExploreAppBar extends StatelessWidget
     implements PreferredSizeWidget {
@@ -32,8 +34,15 @@ class CustomExploreAppBar extends StatelessWidget
       centerTitle: true,
       elevation: 0,
 
-      // --- Leading: Profile Picture ---
-      leading: Padding(
+      // Two icons share the leading slot now (profile + saved), so it needs
+      // more than AppBar's default 56px or the bookmark is clipped away.
+      leadingWidth: 104.w,
+
+      // --- Leading: Profile Picture + Saved ---
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+      Padding(
         padding: EdgeInsets.only(left: 18.w),
         child: GestureDetector(
           onTap: () => Get.toNamed(Routes.myProfile),
@@ -65,6 +74,27 @@ class CustomExploreAppBar extends StatelessWidget
             );
           }),
         ),
+      ),
+          SizedBox(width: 10.w),
+          // Saved spots — the bookmark from the redesign's top nav.
+          GestureDetector(
+            onTap: () => Get.to(() => const ExploreSavedScreen()),
+            child: Container(
+              width: 34.w,
+              height: 34.w,
+              padding: EdgeInsets.all(7.sp),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xff49205C),
+              ),
+              child: ExploreIcons.svg(
+                ExploreIcons.cardSave,
+                size: 18.sp,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ),
 
       // --- Title: Achievements Icon ---

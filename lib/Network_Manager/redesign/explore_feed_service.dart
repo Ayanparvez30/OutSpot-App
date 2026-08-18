@@ -169,6 +169,77 @@ class ExploreFeedService {
     }
   }
 
+  /// Bookmark a place. Idempotent server-side — saving twice is a no-op — so
+  /// the UI can fire this without first checking what it already saved.
+  static Future<bool> savePlace(SpotCardModel spot) async {
+    try {
+      final res = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/explore/saved'),
+        headers: await _headers(),
+        body: jsonEncode({
+          'placeId': spot.placeId,
+          'placeName': spot.name,
+          'latitude': spot.lat,
+          'longitude': spot.lng,
+        }),
+      );
+      return res.statusCode == 200;
+    } catch (e) {
+      log('❌ savePlace failed: $e');
+      return false;
+    }
+  }
+
+  /// Remove a bookmark. Also idempotent.
+  static Future<bool> unsavePlace(String placeId) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('${ApiConstants.baseUrl}/explore/saved/$placeId'),
+        headers: await _headers(),
+      );
+      return res.statusCode == 200;
+    } catch (e) {
+      log('❌ unsavePlace failed: $e');
+      return false;
+    }
+  }
+
+  /// Just the saved place ids, so the feed can fill in bookmark icons without
+  /// pulling Google details for every saved spot.
+  static Future<Set<String>> savedPlaceIds() async {
+    try {
+      final res = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/explore/saved/ids'),
+        headers: await _headers(),
+      );
+      if (res.statusCode != 200) return {};
+      final body = jsonDecode(res.body);
+      final ids = body is Map ? body['placeIds'] : null;
+      if (ids is! List) return {};
+      return ids.map((e) => e.toString()).toSet();
+    } catch (e) {
+      log('❌ savedPlaceIds failed: $e');
+      return {};
+    }
+  }
+
+  /// Full cards for the Saved screen, newest bookmark first.
+  static Future<List<SpotCardModel>> savedPlaces({
+    required double lat,
+    required double lng,
+  }) async {
+    final url = Uri.parse(
+      '${ApiConstants.baseUrl}/explore/saved?lat=$lat&lng=$lng',
+    );
+    try {
+      final res = await http.get(url, headers: await _headers());
+      return _parse(res, 'places', 'saved', fallbackCategory: 'Saved');
+    } catch (e) {
+      log('❌ savedPlaces failed: $e');
+      return const [];
+    }
+  }
+
   /// Backs the search field. Mirrors the parameters the current screen sends.
   static Future<List<SpotCardModel>> search({
     required String query,

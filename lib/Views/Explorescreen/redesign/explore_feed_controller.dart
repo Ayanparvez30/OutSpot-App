@@ -102,8 +102,8 @@ class ExploreFeedController extends GetxController {
   /// would hide content the user can already read.
   final RxBool refreshingInBackground = false.obs;
 
-  /// Saved place ids. Local-only until a SavedPlace table exists — tapping the
-  /// bookmark updates the icon and nothing else, by design.
+  /// Which places this user has bookmarked. Loaded once per Explore open and
+  /// kept in step optimistically as the user taps.
   final RxSet<String> savedPlaceIds = <String>{}.obs;
 
   /// Exposed so the search and expanded-category screens can reuse the fix
@@ -173,6 +173,9 @@ class ExploreFeedController extends GetxController {
         'showing it while the new area loads',
       );
     }
+
+    // Bookmarks are cheap to fetch and drive every card's icon.
+    unawaited(_loadSavedIds());
 
     locating.value = false;
 
@@ -327,12 +330,33 @@ class ExploreFeedController extends GetxController {
     searching.value = false;
   }
 
-  /// Design-only for now; see [savedPlaceIds].
-  void toggleSaved(SpotCardModel spot) {
-    if (savedPlaceIds.contains(spot.placeId)) {
-      savedPlaceIds.remove(spot.placeId);
-    } else {
-      savedPlaceIds.add(spot.placeId);
-    }
+  Future<void> _loadSavedIds() async {
+    final ids = await ExploreFeedService.savedPlaceIds();
+    if (ids.isNotEmpty) savedPlaceIds.assignAll(ids);
+  }
+
+  /// Flip the bookmark now, tell the server after.
+  ///
+  /// The icon must respond to a tap instantly; if the request fails the icon
+  /// goes back rather than lying about what's stored.
+  Future<void> toggleSaved(SpotCardModel spot) async {
+    if (spot.placeId.isEmpty) return;
+    final wasSaved = savedPlaceIds.contains(spot.placeId);
+
+    wasSaved
+        ? savedPlaceIds.remove(spot.placeId)
+        : savedPlaceIds.add(spot.placeId);
+
+    final ok =
+        wasSaved
+            ? await ExploreFeedService.unsavePlace(spot.placeId)
+            : await ExploreFeedService.savePlace(spot);
+
+    if (ok) return;
+    // Roll back to what the server actually holds.
+    wasSaved
+        ? savedPlaceIds.add(spot.placeId)
+        : savedPlaceIds.remove(spot.placeId);
+    log('⚠️ Bookmark toggle failed for ${spot.placeId}, reverted');
   }
 }

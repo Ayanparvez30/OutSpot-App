@@ -9,6 +9,7 @@ import 'package:outspot/Model/redesign/spot_card_model.dart';
 import 'package:outspot/Network_Manager/redesign/explore_feed_service.dart';
 import 'package:outspot/Utils/routes.dart';
 import 'package:outspot/Views/Explore_Category/placeDetailsScreen.dart';
+import 'package:outspot/Views/Explorescreen/redesign/explore_feed_controller.dart';
 
 /// "EXPLORE - Expanded Category" (Figma node 7319:14519) — the screen behind a
 /// carousel heading's arrow.
@@ -50,8 +51,16 @@ class _ExploreExpandedCategoryState extends State<ExploreExpandedCategory> {
   static const double _cardScale = 0.88;
 
   final List<SpotCardModel> _spots = [];
-  final Set<String> _saved = {};
   bool _loading = true;
+
+  /// Shared with the feed rather than kept locally: bookmarking here has to
+  /// reach the server and be reflected back on the carousels, which a private
+  /// Set never did — the old local one only changed the icon on this screen
+  /// and forgot it on the way back.
+  late final ExploreFeedController _feed =
+      Get.isRegistered<ExploreFeedController>()
+          ? Get.find<ExploreFeedController>()
+          : Get.put(ExploreFeedController());
 
   @override
   void initState() {
@@ -124,19 +133,18 @@ class _ExploreExpandedCategoryState extends State<ExploreExpandedCategory> {
                                   SizedBox(height: ExploreDim.carouselItemGap.w),
                           itemBuilder: (_, i) {
                             final s = _spots[i];
-                            return SpotCard(
-                              spot: s,
-                              // Figma's expanded card: full width, 140px photo.
-                              width: double.infinity,
-                              imageHeight: figPx(140 * _cardScale).w,
-                              isSaved: _saved.contains(s.placeId),
-                              onSave:
-                                  () => setState(() {
-                                    _saved.contains(s.placeId)
-                                        ? _saved.remove(s.placeId)
-                                        : _saved.add(s.placeId);
-                                  }),
-                              onTap: () => _openSpot(s),
+                            return Obx(
+                              () => SpotCard(
+                                spot: s,
+                                // Figma's expanded card: full width, 140px.
+                                width: double.infinity,
+                                imageHeight: figPx(140 * _cardScale).w,
+                                isSaved: _feed.savedPlaceIds.contains(
+                                  s.placeId,
+                                ),
+                                onSave: () => _feed.toggleSaved(s),
+                                onTap: () => _openSpot(s),
+                              ),
                             );
                           },
                         ),
@@ -192,7 +200,9 @@ class _ExploreExpandedCategoryState extends State<ExploreExpandedCategory> {
             // The app's own back glyph, as every other pushed screen uses.
             const Align(
               alignment: Alignment.centerLeft,
-              child: CustomBackButton(),
+              child: SizedBox(
+                height: 35,
+                child: CustomBackButton()),
             ),
           ],
         ),

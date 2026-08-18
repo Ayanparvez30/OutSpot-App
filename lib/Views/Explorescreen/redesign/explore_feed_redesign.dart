@@ -180,11 +180,17 @@ class _ExploreFeedRedesignState extends State<ExploreFeedRedesign> {
     return [
       for (final s in visible)
         Obx(() {
+          // Read the bookmark set inside the Obx so tapping save rebuilds the
+          // carousel immediately. Passing the RxSet along without reading it
+          // here registers no dependency, which is why the icon used to stay
+          // on its old state until the screen was rebuilt for some other
+          // reason. `.toSet()` hands the card a plain snapshot.
+          final saved = c.savedPlaceIds.toSet();
           final carousel = SpotCarousel(
             title: s.title,
             spots: s.spots,
             isLoading: s.loading.value,
-            savedPlaceIds: c.savedPlaceIds,
+            savedPlaceIds: saved,
             horizontalPadding: _pad,
             onSeeAll: () => _openSection(s.categoryKey, s.title),
             onSpotTap: (spot) => _openSpot(spot, s.categoryKey),
