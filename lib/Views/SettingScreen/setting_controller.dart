@@ -12,6 +12,8 @@ import 'package:outspot/Network_Manager/api_service.dart';
 import 'package:outspot/Network_Manager/user_preference.dart';
 import 'package:outspot/Network_Manager/video_cache_service.dart';
 import 'package:outspot/Utils/colors.dart';
+import 'package:outspot/CommonWidgets/ReviewWidgets/review_sheet.dart';
+import 'package:outspot/Network_Manager/app_review_service.dart';
 import 'package:outspot/Utils/routes.dart';
 import 'package:outspot/Views/Message/messages_screen_controller.dart';
 import 'package:path_provider/path_provider.dart';
@@ -126,6 +128,8 @@ class SettingController extends GetxController {
       // Get.toNamed(Routes.mainscreen);
     } else if (item == "Contact Us") {
       Get.toNamed(Routes.contactUs);
+    } else if (item == "Rate OutSpot") {
+      openReviewSheet();
     } else if (item == "Privacy Policy") {
       openUrl("https://outspot.app/privacy-policy/");
     } else if (item == "Terms & Agreements") {
@@ -139,6 +143,14 @@ class SettingController extends GetxController {
       Get.toNamed(Routes.settingnotification);
       // openAppSettings();
     }
+  }
+
+  /// Opens the review sheet, pre-filled with whatever this user wrote before
+  /// so "Rate OutSpot" doubles as "edit my review". No "Later" button here —
+  /// they came looking for it, so swiping the sheet away is enough.
+  Future<void> openReviewSheet() async {
+    final existing = await AppReviewService.fetchMyReview();
+    await ReviewSheet.show(existing: existing);
   }
 
   Future<void> updateProfilePrivacy(bool newValue) async {

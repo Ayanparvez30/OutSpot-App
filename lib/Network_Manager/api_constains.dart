@@ -63,6 +63,10 @@ class ApiConstants {
   // Force-update policy. Public — answered before login.
   static const String appVersion = '/app/version';
 
+  // In-app reviews of OutSpot itself.
+  static const String myReview = '/review/me';
+  static const String submitReview = '/review';
+
   static const String exploreHome = '/explore/home';
 
   static const String updateFcmToken = '/me/fcm-token';

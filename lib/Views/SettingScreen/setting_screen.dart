@@ -84,7 +84,7 @@ class SettingScreen extends GetView<SettingController> {
                     customBuildSection(
                       imagePath: "assets/svg/icons/support_icon.svg",
                       title: "Support",
-                      items: ["Contact Us"],
+                      items: ["Contact Us", "Rate OutSpot"],
                     ),
                     customBuildSection(
                       imagePath: "assets/svg/icons/legal_icon.svg",

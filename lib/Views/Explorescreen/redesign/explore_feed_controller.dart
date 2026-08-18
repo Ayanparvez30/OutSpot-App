@@ -6,6 +6,8 @@ import 'package:get/get.dart';
 import 'package:outspot/CommonWidgets/CustomWidgets/location_helper.dart';
 import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_search_and_filters.dart';
 import 'package:outspot/Model/redesign/spot_card_model.dart';
+import 'package:outspot/CommonWidgets/ReviewWidgets/review_sheet.dart';
+import 'package:outspot/Network_Manager/app_review_service.dart';
 import 'package:outspot/Network_Manager/redesign/explore_feed_cache.dart';
 import 'package:outspot/Network_Manager/redesign/explore_feed_service.dart';
 
@@ -182,6 +184,28 @@ class ExploreFeedController extends GetxController {
     // 3. Always revalidate. Cards already showing stay put until their
     //    section's fresh data arrives, so nothing ever blanks out mid-scroll.
     await loadAll(background: cached != null);
+
+    // 4. The feed is up. Only now is it fair to ask what the user thinks of
+    //    the app — asking over a half-loaded screen is asking about nothing.
+    unawaited(_maybeAskForReview());
+  }
+
+  /// Raises the review sheet if it's due: third launch, hasn't reviewed on any
+  /// device, and not inside the two days a "Later" tap buys. Every one of those
+  /// checks lives in [AppReviewService]; this only decides *where* to ask.
+  Future<void> _maybeAskForReview() async {
+    if (!await AppReviewService.shouldPrompt()) return;
+
+    // A breath, so the sheet rises over settled content rather than racing the
+    // cards' own animations.
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    // Bail if Explore is gone (tab switched, screen popped) or another sheet
+    // already owns the bottom of the screen.
+    if (isClosed) return;
+    if (Get.isBottomSheetOpen ?? false) return;
+
+    await ReviewSheet.show(showLater: true, onLater: AppReviewService.snooze);
   }
 
   /// Pull-to-refresh. Re-reads GPS, so moving and pulling down picks up the new

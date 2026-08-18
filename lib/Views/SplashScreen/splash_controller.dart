@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:outspot/CommonWidgets/CustomWidgets/customWidget.dart';
 import 'package:outspot/Network_Manager/api_service.dart';
 import 'package:outspot/Network_Manager/app_version_service.dart';
+import 'package:outspot/Network_Manager/app_review_service.dart';
 import 'package:outspot/Views/SplashScreen/force_update_screen.dart';
 import 'package:outspot/Network_Manager/user_preference.dart';
 import 'package:outspot/Utils/routes.dart';
@@ -35,6 +36,11 @@ class SplashController extends GetxController {
       Get.offAll(() => ForceUpdateScreen(status: version));
       return;
     }
+
+    // One launch = one tick towards the review prompt. Counted here because
+    // splash runs exactly once per cold start; counting inside Explore would
+    // tick on every tab switch instead.
+    AppReviewService.registerAppOpen();
 
     final destination = await _resolveDestination();
     Get.offAllNamed(destination.route, arguments: destination.arguments);
