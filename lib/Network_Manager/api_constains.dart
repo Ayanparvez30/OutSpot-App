@@ -67,6 +67,10 @@ class ApiConstants {
   static const String myReview = '/review/me';
   static const String submitReview = '/review';
 
+  // Spots users suggest from Explore.
+  static const String suggestSpot = '/spots/suggest';
+  static const String mySpotSuggestions = '/spots/my-suggestions';
+
   static const String exploreHome = '/explore/home';
 
   static const String updateFcmToken = '/me/fcm-token';

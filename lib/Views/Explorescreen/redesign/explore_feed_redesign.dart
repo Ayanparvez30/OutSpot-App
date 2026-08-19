@@ -10,6 +10,7 @@ import 'package:outspot/Views/Explore_Category/placeDetailsScreen.dart';
 import 'package:outspot/Views/Explorescreen/redesign/explore_expanded_category.dart';
 import 'package:outspot/Views/Explorescreen/redesign/explore_feed_controller.dart';
 import 'package:outspot/Views/Explorescreen/redesign/explore_search_screen.dart';
+import 'package:outspot/Views/Explorescreen/redesign/suggest_spot_screen.dart';
 
 /// The redesigned Explore feed body: search field, seven category pills, then
 /// the carousels — Figma "EXPLORE" frame, node 7319:14445.
@@ -127,11 +128,41 @@ class _ExploreFeedRedesignState extends State<ExploreFeedRedesign> {
         SizedBox(height: figPx(12).w),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: _pad),
-          child: ExploreSearchField(
-            controller: _search,
-            // Tapping opens the dedicated search screen, as in the redesign,
-            // rather than searching inline.
-            onTap: _openSearch,
+          child: Row(
+            children: [
+              Expanded(
+                child: ExploreSearchField(
+                  controller: _search,
+                  // Tapping opens the dedicated search screen, as in the
+                  // redesign, rather than searching inline.
+                  onTap: _openSearch,
+                ),
+              ),
+              SizedBox(width: figPx(10).w),
+              // "Know a spot we're missing?" — sits beside search because it's
+              // what you reach for when searching turned nothing up. It lived
+              // in the top nav first, where it overflowed the row.
+              GestureDetector(
+                onTap: () => Get.to(() => const SuggestSpotScreen()),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: ExploreDim.searchHeight.w,
+                  height: ExploreDim.searchHeight.w,
+                  decoration: BoxDecoration(
+                    color: ExploreColors.surface,
+                    borderRadius: BorderRadius.circular(
+                      ExploreDim.searchRadius.w,
+                    ),
+                    border: Border.all(color: ExploreColors.border, width: 1),
+                  ),
+                  child: Icon(
+                    Icons.add_location_alt_outlined,
+                    size: ExploreDim.searchIcon.w + 2,
+                    color: ExploreColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         SizedBox(height: ExploreDim.carouselItemGap.w),
