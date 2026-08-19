@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:outspot/CommonWidgets/CustomWidgets/custom_back_button.dart';
 import 'package:outspot/CommonWidgets/CustomWidgets/location_helper.dart';
 import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_redesign_tokens.dart';
 import 'package:outspot/Network_Manager/spot_suggestion_service.dart';
@@ -184,9 +185,13 @@ class _SuggestSpotScreenState extends State<SuggestSpotScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-            onPressed: () => Get.back(),
+          // Same back control the rest of the redesign uses, at the same size.
+          leading: const Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: 16),
+              child: SizedBox(height: 35, child: CustomBackButton()),
+            ),
           ),
           title: Text(
             'Suggest a spot',
