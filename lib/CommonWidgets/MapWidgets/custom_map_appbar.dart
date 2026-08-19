@@ -212,7 +212,7 @@ class CustomMapAppBar extends StatelessWidget implements PreferredSizeWidget {
               padding: EdgeInsets.all(7.sp),
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xff703A8B),
+                color: Color(0xff49205C),
               ),
               child: ExploreIcons.svg(
                 ExploreIcons.cardSave,
