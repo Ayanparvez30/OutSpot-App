@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:outspot/CommonWidgets/CustomWidgets/customWidget.dart';
 import 'package:outspot/Network_Manager/api_service.dart';
 import 'package:outspot/Network_Manager/app_version_service.dart';
 import 'package:outspot/Network_Manager/app_review_service.dart';
+import 'package:outspot/Network_Manager/connectivity_service.dart';
 import 'package:outspot/Views/SplashScreen/force_update_screen.dart';
 import 'package:outspot/Network_Manager/user_preference.dart';
 import 'package:outspot/Utils/routes.dart';
@@ -61,11 +61,16 @@ class SplashController extends GetxController {
       return _NavDestination(Routes.launchScreen);
     }
 
-    bool hasInternet = await CustomWidgets().checkInternet();
-    if (!hasInternet) {
-      CustomWidgets().showNoInternetSnackbar();
-      log("❌ No internet connection");
-      return _NavDestination(Routes.launchScreen);
+    // Opening the app with no connection used to land the user on the login
+    // screen — which they also can't complete offline, and which reads as
+    // having been logged out when the session is in fact intact. Hold here
+    // instead: the offline screen is already over the top of us, and this
+    // resumes the moment the server answers.
+    final connectivity = Get.find<ConnectivityService>();
+    if (!await connectivity.verify()) {
+      log("❌ No internet — waiting rather than bouncing to login");
+      await connectivity.waitUntilOnline();
+      log("✅ Back online — continuing startup");
     }
 
     try {

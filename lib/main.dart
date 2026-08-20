@@ -22,6 +22,8 @@ import 'package:outspot/Network_Manager/api_service.dart';
 import 'package:outspot/Network_Manager/notification_badge_service.dart';
 import 'package:outspot/Network_Manager/socketService.dart';
 import 'package:outspot/Network_Manager/user_preference.dart';
+import 'package:outspot/CommonWidgets/CustomWidgets/offline_screen.dart';
+import 'package:outspot/Network_Manager/connectivity_service.dart';
 import 'package:outspot/app/app_pages.dart';
 import 'package:outspot/Utils/routes.dart';
 import 'package:outspot/Utils/profile_reload_observer.dart';
@@ -303,6 +305,9 @@ void main() async {
 
   SocketService(ApiConstants.socketUrl);
   Get.put(NotificationBadgeService());
+  // Before runApp so the offline overlay in MyApp's builder can find it on the
+  // very first frame.
+  Get.put(ConnectivityService());
   configLoading();
   runApp(
     DevicePreview(
@@ -368,6 +373,11 @@ class MyApp extends StatelessWidget {
             );
 
             // Wrap with the device_preview frame (no-op when disabled).
+            // Puts the offline screen over whatever the user is on when the
+            // connection drops, and takes it away when it returns. Above the
+            // navigator, so no route is pushed and the back stack survives.
+            widget = OfflineGate(child: widget);
+
             return DevicePreview.appBuilder(context, widget);
           },
           initialRoute: Routes.splashScreen,
