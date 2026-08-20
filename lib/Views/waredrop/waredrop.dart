@@ -413,12 +413,9 @@ class Waredrop extends GetView<WaredropController> {
                                                   width:
                                                       isActive ? 130.w : 100.w,
                                                   radius: 10.r,
-                                                  baseColor: const Color(
-                                                    0xff2D0731,
-                                                  ),
-                                                  highlightColor: const Color(
-                                                    0xff4A1060,
-                                                  ),
+                                                  baseColor: _shimmerBase,
+                                                  highlightColor:
+                                                      _shimmerHighlight,
                                                 ),
                                               ),
                                           errorWidget:
@@ -665,8 +662,8 @@ class Waredrop extends GetView<WaredropController> {
                                   height: double.infinity,
                                   width: double.infinity,
                                   radius: 10.r,
-                                  baseColor: const Color(0xff2D0731),
-                                  highlightColor: const Color(0xff4A1060),
+                                  baseColor: _shimmerBase,
+                                  highlightColor: _shimmerHighlight,
                                 ),
                             errorWidget:
                                 (context, url, error) => const Icon(
@@ -692,15 +689,22 @@ class Waredrop extends GetView<WaredropController> {
   // Loading skeleton — shimmer placeholders shown while the wardrobe's first
   // load runs, so the screen never flashes a blank top section.
   // ---------------------------------------------------------------------------
+  /// One shimmer pair for the whole screen, matching `ShimmerPlaceholder` so a
+  /// loading wardrobe looks like the rest of the app loading.
+  static const Color _shimmerBase = Color(0xFF2D0731);
+  static const Color _shimmerHighlight = Color(0xFF4A1466);
+
   Widget _buildLoadingSkeleton() {
-    // Softer, more visible shimmer that reads cleanly over the dark purple
-    // background — a subtle lift from the base to a lighter theme purple.
+    // The app's shimmer pair, the same one `ShimmerPlaceholder` and the two
+    // image placeholders further up this file use. It had drifted lighter here
+    // (#351248 → #5E2A85), which left the skeleton reading as a screen full of
+    // solid pale blocks rather than as something still loading.
     Widget shimmer({double? h, double? w, double radius = 12}) => FadeShimmer(
       height: h ?? double.infinity,
       width: w ?? double.infinity,
       radius: radius,
-      baseColor: const Color(0xff351248),
-      highlightColor: const Color(0xff5E2A85),
+      baseColor: _shimmerBase,
+      highlightColor: _shimmerHighlight,
     );
 
     return Column(
