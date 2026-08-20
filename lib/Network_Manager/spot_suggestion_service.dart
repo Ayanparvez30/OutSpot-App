@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_redesign_icons.dart';
+
 import 'api_constains.dart';
 import 'user_preference.dart';
 
@@ -100,15 +102,17 @@ class SubmitResult {
 /// at the moment they submit and sent alongside, and the server refuses a spot
 /// pinned far from where the phone says the person is.
 class SpotSuggestionService {
-  /// What the categories are called on the submit form. Keys must match the
-  /// server's `VALID_CATEGORIES`, which in turn match Explore's own tabs.
-  static const List<({String key, String label})> categories = [
-    (key: 'restaurants', label: 'Restaurants'),
-    (key: 'cafes', label: 'Cafes'),
-    (key: 'bars', label: 'Bars'),
-    (key: 'dessert', label: 'Dessert'),
-    (key: 'outdoors', label: 'Outdoors'),
-    (key: 'venue-events', label: 'Venue Events'),
+  /// What the categories are called on the submit form, with the same Figma
+  /// glyph Explore's own filter pills use — so a category reads the same
+  /// wherever the user meets it. Keys must match the server's
+  /// `VALID_CATEGORIES`.
+  static const List<({String key, String label, String icon})> categories = [
+    (key: 'restaurants', label: 'Restaurants', icon: ExploreIcons.pillRestaurants),
+    (key: 'cafes', label: 'Cafes', icon: ExploreIcons.pillCafes),
+    (key: 'bars', label: 'Bars', icon: ExploreIcons.pillBars),
+    (key: 'dessert', label: 'Dessert', icon: ExploreIcons.pillDessert),
+    (key: 'outdoors', label: 'Outdoors', icon: ExploreIcons.pillOutdoors),
+    (key: 'venue-events', label: 'Venue Events', icon: ExploreIcons.pillVenueEvents),
   ];
 
   static Future<Map<String, String>> _headers() async {

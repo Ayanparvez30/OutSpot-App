@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:outspot/CommonWidgets/CustomWidgets/custom_back_button.dart';
 import 'package:outspot/CommonWidgets/CustomWidgets/location_helper.dart';
+import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_redesign_icons.dart';
 import 'package:outspot/CommonWidgets/ExploreWidgets/redesign/explore_redesign_tokens.dart';
 import 'package:outspot/Network_Manager/spot_suggestion_service.dart';
 import 'package:outspot/Utils/app_snackbar.dart';
@@ -82,31 +83,32 @@ class _SuggestSpotScreenState extends State<SuggestSpotScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(height: 8.h),
-            ListTile(
-              leading: const Icon(Icons.photo_camera, color: Colors.white),
-              title: Text(
-                'Take a photo',
-                style: GoogleFonts.notoSans(color: Colors.white),
-              ),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+      builder:
+          (ctx) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 8.h),
+                ListTile(
+                  leading: const Icon(Icons.photo_camera, color: Colors.white),
+                  title: Text(
+                    'Take a photo',
+                    style: GoogleFonts.notoSans(color: Colors.white),
+                  ),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library, color: Colors.white),
+                  title: Text(
+                    'Choose from gallery',
+                    style: GoogleFonts.notoSans(color: Colors.white),
+                  ),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+                SizedBox(height: 8.h),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library, color: Colors.white),
-              title: Text(
-                'Choose from gallery',
-                style: GoogleFonts.notoSans(color: Colors.white),
-              ),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-            SizedBox(height: 8.h),
-          ],
-        ),
-      ),
+          ),
     );
     if (shot == null) return;
 
@@ -206,41 +208,57 @@ class _SuggestSpotScreenState extends State<SuggestSpotScreen> {
         body: SafeArea(
           top: false,
           child: ListView(
-            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 32.h),
+            padding: EdgeInsets.fromLTRB(
+              ExploreDim.pageMargin.w,
+              figPx(8).w,
+              ExploreDim.pageMargin.w,
+              figPx(32).w,
+            ),
             children: [
               _intro(),
-              SizedBox(height: 16.h),
+              SizedBox(height: figPx(14).w),
               _locationCard(),
-              SizedBox(height: 16.h),
+              SizedBox(height: figPx(20).w),
 
               _label('Name of the place'),
-              _field(_name, hint: 'e.g. Rooftop 88', maxLength: 200),
-              SizedBox(height: 14.h),
+              _field(
+                _name,
+                hint: 'e.g. Rooftop 88',
+                icon: Icons.storefront_outlined,
+                maxLength: 200,
+              ),
+              SizedBox(height: figPx(18).w),
 
               _label('Category'),
               _categoryPicker(),
-              SizedBox(height: 14.h),
+              SizedBox(height: figPx(18).w),
 
-              _label('Address'),
-              _field(_address, hint: 'Street, floor, landmark', maxLength: 300),
-              SizedBox(height: 14.h),
+              _label('Address', hint: 'optional'),
+              _field(
+                _address,
+                hint: 'Street, floor, landmark',
+                icon: Icons.map_outlined,
+                maxLength: 300,
+              ),
+              SizedBox(height: figPx(18).w),
 
-              _label('Anything we should know?'),
+              _label('Anything we should know?', hint: 'optional'),
               _field(
                 _note,
                 hint: 'What makes it worth adding',
+                icon: Icons.chat_bubble_outline,
                 maxLines: 3,
                 maxLength: 1000,
               ),
-              SizedBox(height: 14.h),
+              SizedBox(height: figPx(18).w),
 
-              _label('Photo'),
+              _label('Photo', hint: 'optional'),
               _photoPicker(),
-              SizedBox(height: 24.h),
+              SizedBox(height: figPx(24).w),
 
               _submitButton(),
               if (_mine != null && _mine!.suggestions.isNotEmpty) ...[
-                SizedBox(height: 28.h),
+                SizedBox(height: figPx(28).w),
                 _mineList(),
               ],
             ],
@@ -250,34 +268,85 @@ class _SuggestSpotScreenState extends State<SuggestSpotScreen> {
     );
   }
 
+  /// Hero card. Carries the reward in the same gold points badge the spot cards
+  /// use, so "50 points" reads as the app's own currency rather than as text.
   Widget _intro() {
     final reward = _mine?.rewardPoints ?? 50;
     return Container(
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.all(figPx(16).w),
       decoration: BoxDecoration(
-        color: ExploreColors.surface,
-        borderRadius: BorderRadius.circular(14.r),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF3E165B), ExploreColors.surface],
+        ),
+        borderRadius: BorderRadius.circular(ExploreDim.cardRadius.w),
         border: Border.all(color: ExploreColors.border),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Know a spot we\'re missing?',
-            style: GoogleFonts.notoSans(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+          Container(
+            width: figPx(40).w,
+            height: figPx(40).w,
+            decoration: BoxDecoration(
+              color: ExploreColors.pill,
+              borderRadius: BorderRadius.circular(figPx(12).w),
+            ),
+            child: Icon(
+              Icons.add_location_alt_outlined,
+              size: figPx(20).w,
+              color: ExploreColors.textPrimary,
             ),
           ),
-          SizedBox(height: 6.h),
+          SizedBox(width: figPx(12).w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Know a spot we\'re missing?',
+                  style: ExploreText.heading.copyWith(fontSize: figPx(15).sp),
+                ),
+                SizedBox(height: figPx(6).w),
+                Text(
+                  'Small places Google doesn\'t list. Stand at it, send it in — '
+                  'if it goes on the map you earn',
+                  style: ExploreText.meta.copyWith(height: 1.5),
+                ),
+                SizedBox(height: figPx(8).w),
+                _pointsBadge(reward),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The spot card's points badge, same fill, border and gold.
+  Widget _pointsBadge(int points) {
+    return Container(
+      height: ExploreDim.badgeHeight.w,
+      padding: EdgeInsets.symmetric(horizontal: ExploreDim.badgePadH.w),
+      decoration: BoxDecoration(
+        color: ExploreColors.pointsBadgeFill,
+        borderRadius: BorderRadius.circular(ExploreDim.badgeHeight.w / 2),
+        border: Border.all(color: ExploreColors.pointsBadgeBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ExploreIcons.svg(
+            ExploreIcons.cardPoints,
+            size: ExploreDim.metaIcon.w,
+          ),
+          SizedBox(width: ExploreDim.badgeGap.w),
           Text(
-            'Small places Google doesn\'t list. You have to be there to send '
-            'one in. If we add it to the map, you get $reward points.',
-            style: GoogleFonts.notoSans(
-              fontSize: 12.sp,
-              height: 1.5,
-              color: ExploreColors.textMuted,
+            '$points points',
+            style: ExploreText.meta.copyWith(
+              color: ExploreColors.pointsText,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -290,51 +359,78 @@ class _SuggestSpotScreenState extends State<SuggestSpotScreen> {
   Widget _locationCard() {
     final Color tint;
     final IconData icon;
-    final String text;
+    final String title;
+    final String detail;
 
     if (_locating) {
-      tint = ExploreColors.textMuted;
+      tint = ExploreColors.gold;
       icon = Icons.my_location;
-      text = 'Finding where you are…';
+      title = 'Finding where you are…';
+      detail = 'Hold on a moment';
     } else if (_position == null) {
       tint = ExploreColors.closedNow;
       icon = Icons.location_disabled;
-      text = 'Location is off — turn it on to suggest a spot';
+      title = 'Location is off';
+      detail = 'Turn it on to suggest a spot';
     } else {
       tint = ExploreColors.openNow;
       icon = Icons.location_on;
-      text =
-          'Using your location: '
+      title = 'You\'re here';
+      detail =
           '${_position!.latitude.toStringAsFixed(5)}, '
           '${_position!.longitude.toStringAsFixed(5)}';
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: figPx(14).w,
+        vertical: figPx(12).w,
+      ),
       decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: tint.withValues(alpha: 0.4)),
+        color: ExploreColors.surface,
+        borderRadius: BorderRadius.circular(ExploreDim.cardRadius.w),
+        border: Border.all(color: tint.withValues(alpha: 0.45)),
       ),
       child: Row(
         children: [
-          Icon(icon, color: tint, size: 18.sp),
-          SizedBox(width: 10.w),
+          Container(
+            width: figPx(32).w,
+            height: figPx(32).w,
+            decoration: BoxDecoration(
+              color: tint.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: tint, size: figPx(16).w),
+          ),
+          SizedBox(width: figPx(10).w),
           Expanded(
-            child: Text(
-              text,
-              style: GoogleFonts.notoSans(fontSize: 12.sp, color: tint),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: ExploreText.spotName.copyWith(
+                    fontSize: figPx(13).sp,
+                    color: tint,
+                  ),
+                ),
+                Text(detail, style: ExploreText.meta),
+              ],
             ),
           ),
           if (!_locating && _position == null)
-            TextButton(
-              onPressed: _readLocation,
-              child: Text(
-                'Retry',
-                style: GoogleFonts.notoSans(
-                  fontSize: 12.sp,
-                  color: Colors.white,
+            GestureDetector(
+              onTap: _readLocation,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: figPx(12).w,
+                  vertical: figPx(6).w,
                 ),
+                decoration: BoxDecoration(
+                  color: ExploreColors.pill,
+                  borderRadius: BorderRadius.circular(figPx(16).w),
+                ),
+                child: Text('Retry', style: ExploreText.pillLabel),
               ),
             ),
         ],
@@ -342,139 +438,226 @@ class _SuggestSpotScreenState extends State<SuggestSpotScreen> {
     );
   }
 
-  Widget _label(String text) => Padding(
-    padding: EdgeInsets.only(bottom: 6.h),
-    child: Text(
-      text,
-      style: GoogleFonts.notoSans(
-        fontSize: 13.sp,
-        fontWeight: FontWeight.w600,
-        color: Colors.white,
-      ),
+  /// Section heading — the same weight and size the feed's row titles use.
+  Widget _label(String text, {String? hint}) => Padding(
+    padding: EdgeInsets.only(bottom: figPx(8).w, left: figPx(2).w),
+    child: Row(
+      children: [
+        Container(
+          width: figPx(3).w,
+          height: figPx(14).w,
+          decoration: BoxDecoration(
+            color: ExploreColors.gold,
+            borderRadius: BorderRadius.circular(figPx(2).w),
+          ),
+        ),
+        SizedBox(width: figPx(8).w),
+        Text(text, style: ExploreText.heading.copyWith(fontSize: figPx(14).sp)),
+        if (hint != null) ...[
+          SizedBox(width: figPx(6).w),
+          Text(hint, style: ExploreText.meta),
+        ],
+      ],
     ),
   );
 
+  /// Fields borrow the search pill's shape — same radius, same fill, same
+  /// border — with a leading glyph so each one is recognisable at a glance.
   Widget _field(
     TextEditingController controller, {
     required String hint,
+    required IconData icon,
     int maxLines = 1,
     int? maxLength,
   }) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      maxLength: maxLength,
-      style: GoogleFonts.notoSans(fontSize: 14.sp, color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.notoSans(
-          fontSize: 13.sp,
-          color: AppColors.hintTextColor,
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: figPx(14).w),
+      decoration: BoxDecoration(
+        color: ExploreColors.surface,
+        borderRadius: BorderRadius.circular(
+          maxLines > 1 ? ExploreDim.cardRadius.w : ExploreDim.searchRadius.w,
         ),
-        counterText: '',
-        filled: true,
-        fillColor: ExploreColors.surface,
-        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: const BorderSide(color: ExploreColors.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: const BorderSide(color: ExploreColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: const BorderSide(color: ExploreColors.pill),
-        ),
+        border: Border.all(color: ExploreColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment:
+            maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: maxLines > 1 ? figPx(14).w : 0),
+            child: Icon(
+              icon,
+              size: figPx(16).w,
+              color: ExploreColors.textMuted,
+            ),
+          ),
+          SizedBox(width: figPx(10).w),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              maxLines: maxLines,
+              maxLength: maxLength,
+              cursorColor: ExploreColors.textPrimary,
+              style: ExploreText.searchField.copyWith(
+                color: ExploreColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                counterText: '',
+                hintText: hint,
+                hintStyle: ExploreText.searchField,
+                contentPadding: EdgeInsets.symmetric(vertical: figPx(14).w),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  /// Identical to Explore's own filter pills, Figma glyph and all — a category
+  /// should look the same wherever the user meets it.
   Widget _categoryPicker() {
     return Wrap(
-      spacing: 8.w,
-      runSpacing: 8.h,
-      children: SpotSuggestionService.categories.map((c) {
-        final selected = c.key == _categoryKey;
-        return GestureDetector(
-          onTap: () => setState(() => _categoryKey = c.key),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
-            decoration: BoxDecoration(
-              color: selected ? ExploreColors.pill : ExploreColors.surface,
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(
-                color: selected ? ExploreColors.pill : ExploreColors.border,
+      spacing: figPx(8).w,
+      runSpacing: figPx(8).w,
+      children:
+          SpotSuggestionService.categories.map((c) {
+            final isOn = c.key == _categoryKey;
+            return GestureDetector(
+              onTap: () => setState(() => _categoryKey = c.key),
+              child: Container(
+                height: ExploreDim.pillHeight.w,
+                padding: EdgeInsets.symmetric(
+                  horizontal: ExploreDim.pillPadH.w,
+                ),
+                decoration: BoxDecoration(
+                  color:
+                      isOn
+                          ? ExploreColors.pill
+                          : ExploreColors.pill.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(ExploreDim.pillRadius.w),
+                  border: Border.all(
+                    color:
+                        isOn ? ExploreColors.textPrimary : Colors.transparent,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ExploreIcons.svg(c.icon, size: ExploreDim.pillIcon.w),
+                    SizedBox(width: ExploreDim.pillGap.w),
+                    Text(
+                      c.label,
+                      style: ExploreText.pillLabel.copyWith(
+                        color:
+                            isOn
+                                ? ExploreColors.textPrimary
+                                : ExploreColors.textPrimary.withValues(
+                                  alpha: 0.7,
+                                ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: Text(
-              c.label,
-              style: GoogleFonts.notoSans(
-                fontSize: 12.sp,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? Colors.white : ExploreColors.textMuted,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
+            );
+          }).toList(),
     );
   }
 
   Widget _photoPicker() {
     if (_photo != null) {
-      return Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12.r),
-            child: Image.file(
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(ExploreDim.cardRadius.w),
+        child: Stack(
+          children: [
+            Image.file(
               _photo!,
               width: double.infinity,
-              height: 160.h,
+              height: ExploreDim.cardImageHeight.w,
               fit: BoxFit.cover,
             ),
-          ),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: GestureDetector(
-              onTap: () => setState(() => _photo = null),
-              child: CircleAvatar(
-                radius: 14.r,
-                backgroundColor: Colors.black54,
-                child: Icon(Icons.close, size: 16.sp, color: Colors.white),
+            // Same gradient scrim the spot cards lay over their photo, so the
+            // controls stay readable on a bright picture.
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.35),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              top: ExploreDim.saveTop.w,
+              right: ExploreDim.saveRight.w,
+              child: GestureDetector(
+                onTap: () => setState(() => _photo = null),
+                child: Container(
+                  width: ExploreDim.circleButton.w,
+                  height: ExploreDim.circleButton.w,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: ExploreColors.border),
+                  ),
+                  child: Icon(
+                    Icons.close,
+                    size: ExploreDim.circleButtonIcon.w,
+                    color: ExploreColors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       );
     }
 
     return GestureDetector(
       onTap: _pickPhoto,
       child: Container(
-        height: 100.h,
+        height: figPx(96).w,
         decoration: BoxDecoration(
           color: ExploreColors.surface,
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(ExploreDim.cardRadius.w),
           border: Border.all(color: ExploreColors.border),
         ),
-        child: Column(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.add_a_photo_outlined,
-              color: ExploreColors.textMuted,
-              size: 24.sp,
-            ),
-            SizedBox(height: 6.h),
-            Text(
-              'Add a photo (optional)',
-              style: GoogleFonts.notoSans(
-                fontSize: 12.sp,
-                color: ExploreColors.textMuted,
+            Container(
+              width: figPx(40).w,
+              height: figPx(40).w,
+              decoration: BoxDecoration(
+                color: ExploreColors.pill.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(figPx(12).w),
               ),
+              child: Icon(
+                Icons.add_a_photo_outlined,
+                color: ExploreColors.textPrimary,
+                size: figPx(18).w,
+              ),
+            ),
+            SizedBox(width: figPx(12).w),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Add a photo',
+                  style: ExploreText.spotName.copyWith(fontSize: figPx(13).sp),
+                ),
+                Text('Optional, but it helps', style: ExploreText.meta),
+              ],
             ),
           ],
         ),
@@ -489,60 +672,93 @@ class _SuggestSpotScreenState extends State<SuggestSpotScreen> {
       children: [
         SizedBox(
           width: double.infinity,
-          height: 50.h,
+          height: figPx(50).w,
           child: DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: _canSubmit
-                    ? const [
-                        AppColors.btnGradientLeft,
-                        AppColors.btnGradientRight,
-                      ]
-                    : [
-                        Colors.white.withValues(alpha: 0.12),
-                        Colors.white.withValues(alpha: 0.12),
-                      ],
+                colors:
+                    _canSubmit
+                        ? const [
+                          AppColors.btnGradientLeft,
+                          AppColors.btnGradientRight,
+                        ]
+                        : [ExploreColors.surface, ExploreColors.surface],
               ),
-              borderRadius: BorderRadius.circular(28.r),
+              borderRadius: BorderRadius.circular(figPx(28).w),
+              border: Border.all(
+                color: _canSubmit ? Colors.transparent : ExploreColors.border,
+              ),
             ),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: BorderRadius.circular(28.r),
+                borderRadius: BorderRadius.circular(figPx(28).w),
                 onTap: _canSubmit ? _submit : null,
                 child: Center(
-                  child: _submitting
-                      ? SizedBox(
-                          width: 20.w,
-                          height: 20.w,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          'Send this spot',
-                          style: GoogleFonts.notoSans(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withValues(
-                              alpha: _canSubmit ? 1 : 0.4,
+                  child:
+                      _submitting
+                          ? SizedBox(
+                            width: figPx(20).w,
+                            height: figPx(20).w,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: ExploreColors.textPrimary,
                             ),
+                          )
+                          : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.send_rounded,
+                                size: figPx(16).w,
+                                color: ExploreColors.textPrimary.withValues(
+                                  alpha: _canSubmit ? 1 : 0.4,
+                                ),
+                              ),
+                              SizedBox(width: figPx(8).w),
+                              Text(
+                                'Send this spot',
+                                style: ExploreText.heading.copyWith(
+                                  fontSize: figPx(15).sp,
+                                  color: ExploreColors.textPrimary.withValues(
+                                    alpha: _canSubmit ? 1 : 0.4,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
                 ),
               ),
             ),
           ),
         ),
         if (blockedForToday) ...[
-          SizedBox(height: 8.h),
-          Text(
-            'You\'ve already sent one today. Try again tomorrow.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.notoSans(
-              fontSize: 12.sp,
-              color: ExploreColors.gold,
+          SizedBox(height: figPx(10).w),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: figPx(12).w,
+              vertical: figPx(8).w,
+            ),
+            decoration: BoxDecoration(
+              color: ExploreColors.gold.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(figPx(12).w),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.schedule,
+                  size: figPx(14).w,
+                  color: ExploreColors.gold,
+                ),
+                SizedBox(width: figPx(6).w),
+                Flexible(
+                  child: Text(
+                    'One a day — come back tomorrow',
+                    style: ExploreText.meta.copyWith(color: ExploreColors.gold),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -555,100 +771,116 @@ class _SuggestSpotScreenState extends State<SuggestSpotScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'What you\'ve sent',
-          style: GoogleFonts.notoSans(
-            fontSize: 15.sp,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+        _label('What you\'ve sent', hint: '${mine.suggestions.length}'),
+        Padding(
+          padding: EdgeInsets.only(left: figPx(11).w, bottom: figPx(10).w),
+          child: Text(
+            'Anything still waiting is removed after ${mine.expiryDays} days.',
+            style: ExploreText.meta,
           ),
         ),
-        SizedBox(height: 4.h),
-        Text(
-          'We remove anything still waiting after ${mine.expiryDays} days.',
-          style: GoogleFonts.notoSans(
-            fontSize: 11.sp,
-            color: ExploreColors.textMuted,
-          ),
-        ),
-        SizedBox(height: 10.h),
         ...mine.suggestions.map(_mineTile),
       ],
     );
   }
 
   Widget _mineTile(SpotSuggestion s) {
-    final (Color tint, String label) = s.isApproved
-        ? (ExploreColors.openNow, 'On the map')
-        : s.isRejected
-        ? (ExploreColors.closedNow, 'Not added')
-        : (ExploreColors.gold, 'Waiting');
+    final (Color tint, String label, IconData icon) =
+        s.isApproved
+            ? (ExploreColors.openNow, 'On the map', Icons.check_circle_outline)
+            : s.isRejected
+            ? (ExploreColors.closedNow, 'Not added', Icons.cancel_outlined)
+            : (ExploreColors.gold, 'Waiting', Icons.hourglass_empty);
 
     return Container(
-      margin: EdgeInsets.only(bottom: 10.h),
-      padding: EdgeInsets.all(12.w),
+      margin: EdgeInsets.only(bottom: figPx(10).w),
       decoration: BoxDecoration(
         color: ExploreColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(ExploreDim.cardRadius.w),
         border: Border.all(color: ExploreColors.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  s.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.notoSans(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+      // IntrinsicHeight measures the text column first, so the rail beside it
+      // has a real height to stretch to. Without it the Row sits in the
+      // ListView's unbounded vertical space, the rail resolves to zero height,
+      // and any tap lands on a zero-size box — which is what threw
+      // "Cannot hit test a render box with no size" and killed scrolling.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // A slim status rail — reads at a glance down a list, without a
+            // coloured badge competing with the card's own chrome.
+            Container(
+              width: figPx(4).w,
+              decoration: BoxDecoration(
+                color: tint,
+                borderRadius: BorderRadius.horizontal(
+                  left: Radius.circular(ExploreDim.cardRadius.w),
                 ),
               ),
-              SizedBox(width: 8.w),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                decoration: BoxDecoration(
-                  color: tint.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10.r),
+            ),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.all(figPx(12).w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            s.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: ExploreText.spotName.copyWith(
+                              fontSize: figPx(13).sp,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: figPx(8).w),
+                        Icon(icon, size: figPx(13).w, color: tint),
+                        SizedBox(width: figPx(4).w),
+                        Text(
+                          label,
+                          style: ExploreText.meta.copyWith(color: tint),
+                        ),
+                      ],
+                    ),
+                    if (s.address.isNotEmpty) ...[
+                      SizedBox(height: figPx(3).w),
+                      Text(
+                        s.address,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ExploreText.meta,
+                      ),
+                    ],
+                    // The admin wrote this for the reporter to read, so it belongs
+                    // on screen and not just in a notification they may have
+                    // swiped away.
+                    if (s.isRejected && s.rejectReason.isNotEmpty) ...[
+                      SizedBox(height: figPx(8).w),
+                      Container(
+                        padding: EdgeInsets.all(figPx(8).w),
+                        decoration: BoxDecoration(
+                          color: tint.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(figPx(8).w),
+                        ),
+                        child: Text(
+                          s.rejectReason,
+                          style: ExploreText.meta.copyWith(
+                            color: tint,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                child: Text(
-                  label,
-                  style: GoogleFonts.notoSans(fontSize: 10.sp, color: tint),
-                ),
-              ),
-            ],
-          ),
-          if (s.address.isNotEmpty) ...[
-            SizedBox(height: 3.h),
-            Text(
-              s.address,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.notoSans(
-                fontSize: 11.sp,
-                color: ExploreColors.textMuted,
               ),
             ),
           ],
-          // The admin wrote this for the reporter to read, so it belongs on
-          // screen and not just in the notification they may have swiped away.
-          if (s.isRejected && s.rejectReason.isNotEmpty) ...[
-            SizedBox(height: 6.h),
-            Text(
-              s.rejectReason,
-              style: GoogleFonts.notoSans(
-                fontSize: 11.sp,
-                height: 1.4,
-                color: ExploreColors.closedNow,
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
