@@ -87,7 +87,9 @@ class SpotCard extends StatelessWidget {
           Positioned.fill(
             child:
                 spot.photoUrl.isEmpty
-                    ? Container(color: ExploreColors.border.withValues(alpha: 0.25))
+                    ? Container(
+                      color: ExploreColors.border.withValues(alpha: 0.25),
+                    )
                     : CachedNetworkImage(
                       imageUrl: spot.photoUrl,
                       fit: BoxFit.cover,
@@ -333,39 +335,44 @@ class SpotCard extends StatelessWidget {
 
   /// Overlapping friend avatars (−6px in Figma) plus the spotted-here line.
   Widget _friendsRow() {
-    final shown = spot.friends.take(ExploreDim.friendsPreviewMax).toList();
+    // The user's own face leads the row, for the same reason "You" leads the
+    // sentence beside it — and because without it a place they had been to
+    // themselves showed the line next to an empty circle. Friends follow, in
+    // the order the server sent them.
+    final shown =
+        <String?>[
+          if (spot.youVisited) spot.yourAvatar,
+          ...spot.friends.map((f) => f.avatar),
+        ].take(ExploreDim.friendsPreviewMax).toList();
     final avatar = ExploreDim.friendAvatar.w;
     final step = avatar - ExploreDim.friendOverlap.w;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (shown.isEmpty)
-            _avatarCircle(null)
-          else
-            SizedBox(
-              width: step * (shown.length - 1) + avatar,
-              height: avatar,
-              child: Stack(
-                children: [
-                  for (var i = 0; i < shown.length; i++)
-                    Positioned(
-                      left: step * i,
-                      child: _avatarCircle(shown[i].avatar),
-                    ),
-                ],
-              ),
-            ),
-          SizedBox(width: ExploreDim.friendsGap.w),
-          Expanded(
-            child: Text(
-              spot.friendsLabel,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: ExploreText.friendsSpotted,
+      children: [
+        if (shown.isEmpty)
+          _avatarCircle(null)
+        else
+          SizedBox(
+            width: step * (shown.length - 1) + avatar,
+            height: avatar,
+            child: Stack(
+              children: [
+                for (var i = 0; i < shown.length; i++)
+                  Positioned(left: step * i, child: _avatarCircle(shown[i])),
+              ],
             ),
           ),
-        ],
+        SizedBox(width: ExploreDim.friendsGap.w),
+        Expanded(
+          child: Text(
+            spot.friendsLabel,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: ExploreText.friendsSpotted,
+          ),
+        ),
+      ],
     );
   }
 
@@ -468,5 +475,4 @@ class SpotCard extends StatelessWidget {
     if (l.contains('points')) return ExploreIcons.cardPoints;
     return null;
   }
-
 }

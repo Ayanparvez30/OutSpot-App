@@ -57,6 +57,20 @@ class SpotCardModel {
   final String name;
   final String photoUrl;
 
+  /// Whether this user has checked in here themselves.
+  ///
+  /// Separate from [friends] on purpose: the server counts friends only, so
+  /// without this a place someone had visited ten times still read "be the
+  /// first of your friends to be spotted here".
+  final bool youVisited;
+
+  /// This user's own avatar, for the front of the row of faces.
+  ///
+  /// The avatars come from [friends], which is friends-only, so a place they
+  /// had been to themselves showed "You visited here" beside an empty circle.
+  /// Null unless [youVisited].
+  final String? yourAvatar;
+
   /// Street address. Blank on the carousel card, shown on search result rows.
   final String address;
 
@@ -98,6 +112,8 @@ class SpotCardModel {
     required this.placeId,
     required this.name,
     required this.photoUrl,
+    this.youVisited = false,
+    this.yourAvatar,
     required this.address,
     required this.points,
     required this.distanceMiles,
@@ -140,6 +156,11 @@ class SpotCardModel {
       placeId: _toStr(json['placeId'] ?? json['id']),
       name: _toStr(json['name']),
       photoUrl: photo,
+      youVisited: json['youVisited'] == true,
+      yourAvatar:
+          (json['yourAvatar'] ?? '').toString().isEmpty
+              ? null
+              : json['yourAvatar'].toString(),
       address: _toStr(json['address']),
       points: _toInt(json['points'] ?? json['pointsCollected']),
       distanceMiles: _toDouble(json['distanceMiles']),
@@ -153,9 +174,10 @@ class SpotCardModel {
           rawTypes is List
               ? rawTypes.map((e) => e.toString()).toList()
               : const <String>[],
-      category: _toStr(json['category']).isNotEmpty
-          ? _toStr(json['category'])
-          : fallbackCategory,
+      category:
+          _toStr(json['category']).isNotEmpty
+              ? _toStr(json['category'])
+              : fallbackCategory,
       // friendsCount can exceed friends.length — the backend previews 3.
       friendsCount: _toInt(json['friendsCount']),
       friends: friends,
@@ -191,6 +213,8 @@ class SpotCardModel {
     'placeId': placeId,
     'name': name,
     'photoUrl': photoUrl,
+    'youVisited': youVisited,
+    'yourAvatar': yourAvatar,
     'address': address,
     'points': points,
     'distanceMiles': distanceMiles,
@@ -240,9 +264,23 @@ class SpotCardModel {
   String get distanceLabel =>
       distanceMiles > 0 ? '${distanceMiles.toStringAsFixed(1)} mi' : '';
 
-  /// "SamR7 and 2 others were spotted here", matching the redesign's copy.
-  /// Falls back to the invitation line when nobody has been spotted yet.
+  /// Who has been here — "You and 2 others were spotted here".
+  ///
+  /// [youVisited] is counted separately from [friendsCount] because the server
+  /// counts friends only. Without it, someone who had checked in ten times was
+  /// still told to "be the first", which is both wrong and a little insulting.
+  ///
+  /// "You" always leads when it applies: it is the one name the reader
+  /// recognises instantly, and it is the fact that makes the row worth reading.
   String get friendsLabel {
+    if (youVisited) {
+      if (friendsCount <= 0) return 'You visited here';
+      if (friendsCount == 1) {
+        return 'You and ${friends.first.displayName} were spotted here';
+      }
+      return 'You and $friendsCount others were spotted here';
+    }
+
     if (friends.isEmpty) {
       return 'Be the first of your friends to be spotted here!';
     }
