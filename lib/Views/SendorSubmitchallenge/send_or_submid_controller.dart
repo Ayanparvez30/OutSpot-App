@@ -23,6 +23,7 @@ import 'package:outspot/Utils/colors.dart';
 import 'package:outspot/Utils/routes.dart';
 import 'package:outspot/Views/Challenges/ChallengeManager.dart';
 import 'package:outspot/Utils/app_snackbar.dart';
+import 'package:outspot/Network_Manager/vertical_hint_service.dart';
 
 class SendorSubmidController extends GetxController {
   /// Set this before navigating to camera to auto-select a friend on send/submit screen.
@@ -241,8 +242,7 @@ class SendorSubmidController extends GetxController {
         if (position.isMocked) {
           AppLoading.hide();
           const t = "Location Looks Faked";
-          const m =
-              "Turn off any mock / location-spoofing apps and try again.";
+          const m = "Turn off any mock / location-spoofing apps and try again.";
           if (silentError) {
             lastErrorTitle = t;
             lastErrorMessage = m;
@@ -277,6 +277,9 @@ class SendorSubmidController extends GetxController {
           suppressSuccessDialog: suppressSuccessDialog,
           accuracy: position.accuracy,
           isMocked: position.isMocked,
+          // Carried through so the floor can be read off the same fix rather
+          // than costing a second GPS read.
+          fix: position,
         );
       } else {
         AppLoading.hide();
@@ -307,8 +310,14 @@ class SendorSubmidController extends GetxController {
     bool suppressSuccessDialog = false,
     double? accuracy,
     bool? isMocked,
+    Position? fix,
   }) async {
     try {
+      // Whatever the phone can say about the floor. Both halves are usually
+      // absent and that is fine — the server records what arrives and gates on
+      // none of it.
+      final verticalHint = await VerticalHintService.read(position: fix);
+
       final response = await ApiService.recordVisit(
         placeId: place.placeId,
         name: place.name,
@@ -317,6 +326,7 @@ class SendorSubmidController extends GetxController {
         categoryKey: targetCategoryKey.toString(),
         accuracy: accuracy,
         isMocked: isMocked,
+        verticalHint: verticalHint,
         // Send the captured photo as check-in evidence. Skip for video captures
         // (admin evidence is shown as an image) and when no file is present.
         media: (!isVideo && filePath.isNotEmpty) ? File(filePath) : null,
@@ -412,8 +422,7 @@ class SendorSubmidController extends GetxController {
             break;
           case 'place-closed':
             title = "Place Closed";
-            message =
-                data['message'] ?? "This place is closed right now.";
+            message = data['message'] ?? "This place is closed right now.";
             icon = Icons.lock_clock;
             break;
           case 'mocked-location':
@@ -1169,7 +1178,6 @@ class SendorSubmidController extends GetxController {
                           ),
                           SizedBox(height: 12.h),
 
-                          
                           Obx(() {
                             final challenge = selectedChallenges.value;
 
@@ -1191,7 +1199,6 @@ class SendorSubmidController extends GetxController {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  
                                   isFull ? "You got" : "Complete to get",
                                   style: GoogleFonts.notoSans(
                                     fontWeight: FontWeight.normal,

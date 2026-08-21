@@ -24,6 +24,7 @@ import 'package:outspot/Network_Manager/socketService.dart';
 import 'package:outspot/Network_Manager/user_preference.dart';
 import 'package:outspot/CommonWidgets/CustomWidgets/offline_screen.dart';
 import 'package:outspot/Network_Manager/connectivity_service.dart';
+import 'package:outspot/Network_Manager/vertical_hint_service.dart';
 import 'package:outspot/app/app_pages.dart';
 import 'package:outspot/Utils/routes.dart';
 import 'package:outspot/Utils/profile_reload_observer.dart';
@@ -308,6 +309,11 @@ void main() async {
   // Before runApp so the offline overlay in MyApp's builder can find it on the
   // very first frame.
   Get.put(ConnectivityService());
+
+  // Starts the barometer listening in the background so a check-in usually has
+  // a reading to hand. Harmless on the ~95% of Android phones without the
+  // sensor — the stream simply never fires and the reading stays null.
+  VerticalHintService.start();
   configLoading();
   runApp(
     DevicePreview(

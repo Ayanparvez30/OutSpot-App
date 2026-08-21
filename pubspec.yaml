@@ -64,6 +64,10 @@ dependencies:
   cached_network_image: ^3.2.0
   geocoding: ^4.0.0
   geolocator: ^14.0.2
+  # Barometer, for the pressure reading sent with a check-in. Only ~5% of
+  # Android models have the sensor and the stream simply never fires on the
+  # rest, so every use of it has to tolerate silence.
+  sensors_plus: ^6.1.1
   firebase_core: ^3.15.1
   firebase_messaging: ^15.2.9
   firebase_auth: ^5.6.2

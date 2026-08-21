@@ -12,6 +12,7 @@ import 'package:outspot/Network_Manager/api_constains.dart';
 import 'package:http/http.dart' as http;
 import 'package:outspot/Network_Manager/api_provider.dart';
 import 'package:outspot/Network_Manager/user_preference.dart';
+import 'package:outspot/Network_Manager/vertical_hint_service.dart';
 
 /// Thrown when a chat-lock password attempt is rejected with HTTP 429
 /// (too many wrong attempts). [retryAfterSeconds] comes from the `Retry-After`
@@ -79,9 +80,7 @@ class ApiService {
   /// Submit-for-points cooldown status. Returns
   /// { canSubmit, retryAfterSeconds, nextAllowedAt, rateLimitMinutes, lastSubmitAt }.
   static Future<http.Response> getSubmitForPointsStatus() {
-    return ApiProvider.authGet(
-      endpoint: '${ApiConstants.submitPoints}/status',
-    );
+    return ApiProvider.authGet(endpoint: '${ApiConstants.submitPoints}/status');
   }
 
   static Future<http.Response> submitForPoints({
@@ -333,7 +332,10 @@ class ApiService {
   }) {
     return ApiProvider.authPost(
       endpoint: '/chats/messages/$messageId/report',
-      body: {"reason": reason, if (note != null && note.isNotEmpty) "note": note},
+      body: {
+        "reason": reason,
+        if (note != null && note.isNotEmpty) "note": note,
+      },
     );
   }
 
@@ -551,10 +553,7 @@ class ApiService {
       // শুধু text update
       return await ApiProvider.authPut(
         endpoint: '${ApiConstants.editCommunity}/$id',
-        body: {
-          if (name != null) "name": name,
-          if (bio != null) "bio": bio,
-        },
+        body: {if (name != null) "name": name, if (bio != null) "bio": bio},
       );
     }
   }
@@ -1539,6 +1538,7 @@ class ApiService {
     double? accuracy,
     bool? isMocked,
     File? media,
+    VerticalHint verticalHint = const VerticalHint(),
   }) async {
     final url = Uri.parse(ApiConstants.baseUrl + '/explore/visit');
     final token = (await UserPreference.getToken())?.trim();
@@ -1559,6 +1559,12 @@ class ApiService {
     // GPS quality — so the backend can reject low-accuracy / spoofed submits.
     if (accuracy != null) request.fields['accuracy'] = accuracy.toString();
     if (isMocked != null) request.fields['isMocked'] = isMocked.toString();
+
+    // Which floor the phone thought it was on, and the barometer reading.
+    // Usually both are absent — only iOS reports a floor, and only in surveyed
+    // venues, while most Android handsets have no barometer. The server records
+    // whatever arrives and acts on none of it; see VerticalHintService.
+    request.fields.addAll(verticalHint.toFields());
 
     // Evidence photo (the captured check-in image). Optional: video captures /
     // older flows omit it and the server stores an empty mediaUrl.
